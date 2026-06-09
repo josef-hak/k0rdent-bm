@@ -282,10 +282,25 @@ define_vms() {
 
 # --------------------------------------------------------------------------- #
 # 7. k0s single-node controller + k0rdent + bare-metal templates.
-#    bake brings the cluster up to install charts, then stops it; Phase B
-#    restarts k0scontroller on every boot.
+#    Split into three independently-runnable steps (install_k0s / install_kcm /
+#    install_bm). bake brings the cluster up to install charts, then install_bm
+#    stops it; Phase B restarts k0scontroller on every boot.
 # --------------------------------------------------------------------------- #
-install_k0s_and_k0rdent() {
+
+# Start k0scontroller (if not already up) and block until the API is ready.
+# Shared by all three steps so each works when run on its own.
+wait_k0s_api() {
+  export KUBECONFIG="${KUBECONFIG_PATH}"
+  systemctl start k0scontroller
+  log "waiting for k0s API"
+  for _ in $(seq 1 60); do
+    k0s kubectl get --raw='/readyz' &>/dev/null && return 0; sleep 5
+  done
+  die "k0s API never became ready"
+}
+
+# 7a. k0s single-node controller. Leaves k0scontroller running for 7b/7c.
+install_k0s() {
   log "installing k0s single-node controller"
   if [[ ! -f /etc/k0s/k0s.yaml ]]; then
     install -d -m 0755 /etc/k0s
@@ -303,19 +318,15 @@ PY
   if ! systemctl list-unit-files | grep -q '^k0scontroller'; then
     k0s install controller --single -c /etc/k0s/k0s.yaml
   fi
-  systemctl start k0scontroller
+  wait_k0s_api
+}
 
-  export KUBECONFIG="${KUBECONFIG_PATH}"
-  log "waiting for k0s API"
-  for _ in $(seq 1 60); do
-    k0s kubectl get --raw='/readyz' &>/dev/null && break; sleep 5
-  done
-  k0s kubectl get --raw='/readyz' &>/dev/null || die "k0s API never became ready"
-
-  # k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
-  # registry. Mirrors josef-hak/kube-sol install_kcm.sh. The chart's
-  # controller.createManagement=true creates the "kcm" Management object that
-  # Phase B patches for Ironic.
+# 7b. k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
+#     registry. Mirrors josef-hak/kube-sol install_kcm.sh. The chart's
+#     controller.createManagement=true creates the "kcm" Management object that
+#     Phase B patches for Ironic.
+install_kcm() {
+  wait_k0s_api
   log "installing k0rdent Enterprise (kcm) ${KCM_VERSION}"
   local kcm_values; kcm_values="$(mktemp)"
   envsubst <"${REPO_DIR}/helm/${KCM_VALUES}" >"${kcm_values}"
@@ -326,7 +337,12 @@ PY
     --wait --timeout 20m \
     || warn "kcm install returned non-zero - verify chart/version (KCM_* in config.env)"
   rm -f "${kcm_values}"
+}
 
+# 7c. Bare-metal provider templates + artifact pre-pull. Last cluster step, so
+#     it stops k0scontroller (Phase B restarts it on boot).
+install_bm() {
+  wait_k0s_api
   log "creating bare-metal HelmRepository + Provider/Cluster templates"
   envsubst <"${REPO_DIR}/manifests/bm-templates.yaml" | k0s kubectl apply -f -
 
@@ -380,7 +396,9 @@ main() {
   setup_virtpower_key
   setup_sushy
   define_vms
-  install_k0s_and_k0rdent
+  install_k0s
+  install_kcm
+  install_bm
   install_phase_b
   finish
 }

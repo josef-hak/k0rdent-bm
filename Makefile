@@ -23,7 +23,7 @@ BAKE  := $(CURDIR)/bake.sh
 RUN    = sudo bash -c 'source $(BAKE) && $(1)'
 
 .PHONY: help all \
-        check packages config net virtpower sushy vms cluster units \
+        check packages config net virtpower sushy vms k0s kcm bm units \
         start status watch-bmh clean
 
 # ----------------------------------------------------------------------------
@@ -36,8 +36,10 @@ help:
 	@echo "  5. make virtpower   - virt-power SSH key"
 	@echo "  6. make sushy       - sushy-tools config + image pull"
 	@echo "  7. make vms         - define bmh-0 / bmh-1"
-	@echo "  8. make cluster     - k0s + k0rdent + BM templates + pre-pull"
-	@echo "  9. make units       - install + enable Phase-B systemd units"
+	@echo "  8. make k0s         - k0s single-node controller"
+	@echo "  9. make kcm         - k0rdent Enterprise management cluster"
+	@echo " 10. make bm          - BM provider templates + artifact pre-pull"
+	@echo " 11. make units       - install + enable Phase-B systemd units"
 	@echo "     make all         - all of the above (= sudo ./bake.sh)"
 	@echo ""
 	@echo "Operate / verify:"
@@ -57,7 +59,9 @@ net:       ;	$(call RUN,setup_provisioning_net)
 virtpower: ;	$(call RUN,setup_virtpower_key)
 sushy:     ;	$(call RUN,setup_sushy)
 vms:       ;	$(call RUN,define_vms)
-cluster:   ;	$(call RUN,install_k0s_and_k0rdent)
+k0s:       ;	$(call RUN,install_k0s)
+kcm:       ;	$(call RUN,install_kcm)
+bm:        ;	$(call RUN,install_bm)
 units:     ;	$(call RUN,install_phase_b)
 
 # ---- Phase B / operate -----------------------------------------------------
