@@ -385,4 +385,9 @@ main() {
   finish
 }
 
-main "$@"
+# Run the full bake only when executed directly. When this file is *sourced*
+# (e.g. by the Makefile, to call one step at a time), the functions are defined
+# but main() does not run.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

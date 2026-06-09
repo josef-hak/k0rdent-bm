@@ -4,7 +4,17 @@
       "Bash(bash -n bake.sh)",
       "Bash(bash -n phase-b/bootstrap.sh)",
       "Bash(chmod +x bake.sh phase-b/bootstrap.sh)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(awk '/Mem/{print \"total=\"$2\" used=\"$3\" free=\"$4}')",
+      "Read(//etc/**)",
+      "Bash(systemctl is-enabled *)",
+      "Bash(systemctl is-active *)",
+      "Bash(sudo virsh list --all)",
+      "Bash(bash -c 'source ./bake.sh && echo \"sourced OK, main did NOT run; functions: $\\(declare -F preflight install_packages install_phase_b | wc -l\\)\"')",
+      "Bash(grep -n 'BASH_SOURCE\\\\[0\\\\]\" == \"\\\\${0}\"' bake.sh)",
+      "Bash(make help *)",
+      "Bash(make -n preflight)",
+      "Bash(make -n all)"
     ]
   }
 }
