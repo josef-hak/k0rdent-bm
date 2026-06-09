@@ -299,6 +299,20 @@ wait_k0s_api() {
   die "k0s API never became ready"
 }
 
+# Copy the k0s admin kubeconfig to the invoking user's ~/.kube/config so plain
+# `kubectl` works without sudo. Runs under sudo, so target SUDO_USER's home
+# (not root's). admin.conf already points at https://localhost:6443.
+export_kubeconfig() {
+  local user="${SUDO_USER:-root}"
+  local home grp dst
+  home="$(getent passwd "${user}" | cut -d: -f6)"; [[ -n "${home}" ]] || home="${HOME}"
+  grp="$(id -gn "${user}" 2>/dev/null || echo "${user}")"
+  dst="${home}/.kube/config"
+  log "exporting kubeconfig to ${dst} (owner ${user})"
+  install -d -m 0700 -o "${user}" -g "${grp}" "${home}/.kube"
+  install -m 0600 -o "${user}" -g "${grp}" "${KUBECONFIG_PATH}" "${dst}"
+}
+
 # 7a. k0s single-node controller. Leaves k0scontroller running for 7b/7c.
 install_k0s() {
   log "installing k0s single-node controller"
@@ -315,10 +329,30 @@ d.setdefault('spec', {}).setdefault('api', {})['sans'] = sans
 yaml.safe_dump(d, open(p, 'w'))
 PY
   fi
-  if ! systemctl list-unit-files | grep -q '^k0scontroller'; then
+  # Guard on the unit file k0s itself checks ("Init already exists"), not on
+  # `systemctl list-unit-files` (which can disagree before a daemon-reload).
+  if [[ ! -f /etc/systemd/system/k0scontroller.service ]]; then
     k0s install controller --single -c /etc/k0s/k0s.yaml
+  else
+    log "k0scontroller.service already installed, skipping k0s install"
   fi
   wait_k0s_api
+  export_kubeconfig
+}
+
+# 7a'. Traefik ingress controller (DaemonSet, host ports 80/443) so the
+#      k0rdent UI and other services can be exposed. Mirrors
+#      josef-hak/kube-sol scripts/install_traefik.sh + helm/traefik.yaml.
+install_ingress() {
+  wait_k0s_api
+  log "installing Traefik ingress"
+  helm upgrade --install traefik \
+    oci://ghcr.io/k0rdent/catalog/charts/traefik \
+    --version 39.0.8 \
+    -n traefik \
+    --create-namespace \
+    -f "${REPO_DIR}/helm/traefik.yaml" \
+    || warn "traefik install returned non-zero"
 }
 
 # 7b. k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
@@ -397,6 +431,7 @@ main() {
   setup_sushy
   define_vms
   install_k0s
+  install_ingress
   install_kcm
   install_bm
   install_phase_b

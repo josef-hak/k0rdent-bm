@@ -23,7 +23,7 @@ BAKE  := $(CURDIR)/bake.sh
 RUN    = sudo bash -c 'source $(BAKE) && $(1)'
 
 .PHONY: help all \
-        check packages config net virtpower sushy vms k0s kcm bm units \
+        check packages config net virtpower sushy vms k0s ingress kcm bm units \
         start status watch-bmh clean
 
 # ----------------------------------------------------------------------------
@@ -37,9 +37,10 @@ help:
 	@echo "  6. make sushy       - sushy-tools config + image pull"
 	@echo "  7. make vms         - define bmh-0 / bmh-1"
 	@echo "  8. make k0s         - k0s single-node controller"
-	@echo "  9. make kcm         - k0rdent Enterprise management cluster"
-	@echo " 10. make bm          - BM provider templates + artifact pre-pull"
-	@echo " 11. make units       - install + enable Phase-B systemd units"
+	@echo "  9. make ingress     - Traefik ingress (expose k0rdent UI on 80/443)"
+	@echo " 10. make kcm         - k0rdent Enterprise management cluster"
+	@echo " 11. make bm          - BM provider templates + artifact pre-pull"
+	@echo " 12. make units       - install + enable Phase-B systemd units"
 	@echo "     make all         - all of the above (= sudo ./bake.sh)"
 	@echo ""
 	@echo "Operate / verify:"
@@ -60,6 +61,7 @@ virtpower: ;	$(call RUN,setup_virtpower_key)
 sushy:     ;	$(call RUN,setup_sushy)
 vms:       ;	$(call RUN,define_vms)
 k0s:       ;	$(call RUN,install_k0s)
+ingress:   ;	$(call RUN,install_ingress)
 kcm:       ;	$(call RUN,install_kcm)
 bm:        ;	$(call RUN,install_bm)
 units:     ;	$(call RUN,install_phase_b)
