@@ -3,7 +3,8 @@
     "allow": [
       "Bash(bash -n bake.sh)",
       "Bash(bash -n phase-b/bootstrap.sh)",
-      "Bash(chmod +x bake.sh phase-b/bootstrap.sh)"
+      "Bash(chmod +x bake.sh phase-b/bootstrap.sh)",
+      "Bash(curl *)"
     ]
   }
 }

@@ -8,9 +8,12 @@
 #
 # Re-running is safe: each step guards against already-done state.
 #
-# Required environment (registry creds / license - PLAN open-risk #3):
-#   REGISTRY_USER, REGISTRY_PASS   -> registry.mirantis.com pull credentials
-#   K0RDENT_LICENSE (optional)     -> path to k0rdent Enterprise license file
+# All charts pull ANONYMOUSLY from registry.mirantis.com (k0rdent Enterprise
+# + the public k0rdent-bm provider charts). No credentials are required.
+#
+# Optional environment:
+#   REGISTRY_USER, REGISTRY_PASS   -> only adds a `helm registry login`
+#                                     (e.g. to lift anonymous pull rate limits)
 #
 set -euo pipefail
 
@@ -34,8 +37,7 @@ set +a
 preflight() {
   [[ $EUID -eq 0 ]] || die "must run as root"
   [[ -e /dev/kvm ]] || die "/dev/kvm not present - this host is not KVM-capable"
-  : "${REGISTRY_USER:?set REGISTRY_USER for registry.mirantis.com}"
-  : "${REGISTRY_PASS:?set REGISTRY_PASS for registry.mirantis.com}"
+  # Charts pull anonymously; creds are optional (login only if both are set).
 
   local total_mb
   total_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
@@ -314,19 +316,30 @@ PY
   done
   k0s kubectl get --raw='/readyz' &>/dev/null || die "k0s API never became ready"
 
-  log "helm registry login to registry.mirantis.com"
-  echo "${REGISTRY_PASS}" | helm registry login registry.mirantis.com \
-    -u "${REGISTRY_USER}" --password-stdin
+  # Charts pull anonymously; only log in if creds were explicitly provided
+  # (e.g. to lift anonymous rate limits).
+  if [[ -n "${REGISTRY_USER:-}" && -n "${REGISTRY_PASS:-}" ]]; then
+    log "helm registry login to registry.mirantis.com"
+    echo "${REGISTRY_PASS}" | helm registry login registry.mirantis.com \
+      -u "${REGISTRY_USER}" --password-stdin
+  else
+    log "no REGISTRY_USER/PASS set - pulling anonymously"
+  fi
 
-  # k0rdent Enterprise (kcm). Chart coords per Mirantis docs; license optional.
-  log "installing k0rdent (kcm)"
-  local lic_args=()
-  [[ -n "${K0RDENT_LICENSE:-}" && -f "${K0RDENT_LICENSE}" ]] \
-    && lic_args=(--set-file license="${K0RDENT_LICENSE}")
-  helm upgrade --install kcm "${BM_OCI_REPO}/kcm" \
+  # k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
+  # registry. Mirrors josef-hak/kube-sol install_kcm.sh. The chart's
+  # controller.createManagement=true creates the "kcm" Management object that
+  # Phase B patches for Ironic.
+  log "installing k0rdent Enterprise (kcm) ${KCM_VERSION}"
+  local kcm_values; kcm_values="$(mktemp)"
+  envsubst <"${REPO_DIR}/helm/${KCM_VALUES}" >"${kcm_values}"
+  helm upgrade --install kcm "${KCM_OCI_REPO}/${KCM_CHART}" \
+    --version "${KCM_VERSION}" \
     --namespace "${KCM_NAMESPACE}" --create-namespace \
-    --wait --timeout 20m "${lic_args[@]}" \
-    || warn "kcm install returned non-zero - verify chart name/creds (PLAN open-risk #3)"
+    -f "${kcm_values}" \
+    --wait --timeout 20m \
+    || warn "kcm install returned non-zero - verify chart/version (KCM_* in config.env)"
+  rm -f "${kcm_values}"
 
   log "creating bare-metal HelmRepository + Provider/Cluster templates"
   envsubst <"${REPO_DIR}/manifests/bm-templates.yaml" | k0s kubectl apply -f -

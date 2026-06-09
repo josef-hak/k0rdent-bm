@@ -1,0 +1,14 @@
+# kcm-values.yaml - helm values override for the k0rdent Enterprise (kcm) chart.
+#
+# bake.sh renders this with envsubst (from config.env) and passes it as
+#   helm upgrade --install kcm <KCM_OCI_REPO>/<KCM_CHART> -f <rendered>
+#
+# Mirrors josef-hak/kube-sol helm/kcm.yaml: enable the k0rdent UI with
+# basic auth. Credentials are demo-grade (see KCM_UI_USER/PASS in config.env).
+k0rdent-ui:
+  enabled: true
+  auth:
+    basic:
+      enabled: true
+      username: ${KCM_UI_USER}
+      password: ${KCM_UI_PASS}
