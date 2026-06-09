@@ -361,16 +361,15 @@ install_ingress() {
 #     Phase B patches for Ironic.
 install_kcm() {
   wait_k0s_api
-  log "installing k0rdent Enterprise (kcm) ${KCM_VERSION}"
-  local kcm_values; kcm_values="$(mktemp)"
-  envsubst <"${REPO_DIR}/helm/${KCM_VALUES}" >"${kcm_values}"
-  helm upgrade --install kcm "${KCM_OCI_REPO}/${KCM_CHART}" \
-    --version "${KCM_VERSION}" \
-    --namespace "${KCM_NAMESPACE}" --create-namespace \
-    -f "${kcm_values}" \
+  log "installing k0rdent Enterprise (kcm)"
+  helm upgrade --install kcm \
+    oci://registry.mirantis.com/k0rdent-enterprise/charts/k0rdent-enterprise \
+    --version 1.3.2 \
+    -n kcm-system \
+    --create-namespace \
+    -f "${REPO_DIR}/helm/kcm.yaml" \
     --wait --timeout 20m \
-    || warn "kcm install returned non-zero - verify chart/version (KCM_* in config.env)"
-  rm -f "${kcm_values}"
+    || warn "kcm install returned non-zero"
 }
 
 # 7c. Bare-metal provider templates + artifact pre-pull. Last cluster step, so

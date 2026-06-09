@@ -8,7 +8,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: ${BM_HELMREPO_NAME}
-  namespace: ${KCM_NAMESPACE}
+  namespace: kcm-system
 spec:
   type: oci
   url: ${BM_OCI_REPO}
@@ -26,13 +26,13 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: ${BM_HELMREPO_NAME}
-        namespace: ${KCM_NAMESPACE}
+        namespace: kcm-system
 ---
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ClusterTemplate
 metadata:
   name: ${CLUSTER_TEMPLATE}
-  namespace: ${KCM_NAMESPACE}
+  namespace: kcm-system
 spec:
   helm:
     chartSpec:
@@ -41,4 +41,4 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: ${BM_HELMREPO_NAME}
-        namespace: ${KCM_NAMESPACE}
+        namespace: kcm-system

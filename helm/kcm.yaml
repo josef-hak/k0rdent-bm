@@ -1,0 +1,14 @@
+# kcm.yaml - helm values override for the k0rdent Enterprise (kcm) chart.
+#
+# bake.sh passes this directly:
+#   helm upgrade --install kcm oci://registry.mirantis.com/k0rdent-enterprise/charts/k0rdent-enterprise -f <this>
+#
+# Enables the k0rdent UI with basic auth (demo-grade, hardcoded). The UI is
+# exposed via Traefik ingress (see helm/traefik.yaml).
+k0rdent-ui:
+  enabled: true
+  auth:
+    basic:
+      enabled: true
+      username: admin
+      password: admin
