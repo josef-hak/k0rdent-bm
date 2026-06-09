@@ -1,0 +1,34 @@
+# bmh.yaml - per-host BMC Secret + BareMetalHost (one rendered doc per VM).
+#
+# bootstrap.sh renders this once per host with these vars exported:
+#   BMH_NAME, BMH_UUID, BMH_MAC   (per-host, set inline)
+#   plus everything from config.env (SUSHY_*, HOST_IP, BMH_NAMESPACE, ...)
+#
+# The bmc.address uses the libvirt domain UUID, NOT a MAC/IP, so it stays
+# valid across clone + reboot:
+#   redfish-virtualmedia+https://172.22.0.1:8000/redfish/v1/Systems/<UUID>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${BMH_NAME}-bmc
+  namespace: ${BMH_NAMESPACE}
+type: Opaque
+stringData:
+  username: ${SUSHY_USER}
+  password: ${SUSHY_PASS}
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: ${BMH_NAME}
+  namespace: ${BMH_NAMESPACE}
+spec:
+  online: false
+  bootMode: UEFI
+  bootMACAddress: ${BMH_MAC}
+  bmc:
+    address: redfish-virtualmedia+https://${HOST_IP}:${SUSHY_PORT}/redfish/v1/Systems/${BMH_UUID}
+    credentialsName: ${BMH_NAME}-bmc
+    # Self-signed sushy-tools cert -> skip verification for the demo.
+    disableCertificateVerification: true

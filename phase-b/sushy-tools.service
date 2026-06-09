@@ -1,0 +1,25 @@
+# Phase B: sushy-tools Redfish BMC emulator for the libvirt VMs.
+# Drives the host libvirt over qemu+ssh://root@127.0.0.1 (virt-power pattern).
+# systemd owns the lifecycle (Restart=always) rather than docker's restart policy.
+[Unit]
+Description=sushy-tools Redfish emulator (k0rdent bare-metal demo)
+After=docker.service libvirtd.service network-online.target
+Requires=docker.service libvirtd.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/k0rdent-bm/config.env
+Restart=always
+RestartSec=5
+TimeoutStartSec=120
+ExecStartPre=-/usr/bin/docker rm -f sushy-tools
+ExecStart=/usr/bin/docker run --rm --name sushy-tools \
+  --net host \
+  -e SUSHY_EMULATOR_CONFIG=/conf/conf.py \
+  -v ${SUSHY_CONF_DIR}:/conf:ro \
+  -v /root/.ssh:/root/.ssh:ro \
+  ${SUSHY_IMAGE}
+ExecStop=/usr/bin/docker rm -f sushy-tools
+
+[Install]
+WantedBy=multi-user.target

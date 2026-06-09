@@ -1,0 +1,39 @@
+# management-patch.yaml - strategic merge patch for the kcm Management object.
+#
+# Enables the in-cluster Ironic stack and pins it to the static provisioning
+# network. Applied by bootstrap.sh via:
+#   kubectl patch management kcm --type merge --patch-file <rendered>
+#
+# Variables are filled by envsubst from /etc/k0rdent-bm/config.env.
+#
+# NOTE: confirm this config block against the installed
+# cluster-api-provider-metal3 ${CAPM3_VERSION} chart values - the ironic
+# sub-keys (networking/images) must match that chart's schema. (PLAN risk #1)
+spec:
+  providers:
+    - name: cluster-api-provider-metal3
+      template: ${PROVIDER_TEMPLATE}
+      config:
+        global:
+          ironic:
+            enabled: true
+        ironic:
+          # Bind Ironic (hostNetwork) + keepalived VIP to the provisioning iface.
+          interface: ${PROV_BRIDGE}
+          ipAddress: ${IRONIC_VIP}
+          networking:
+            interface: ${PROV_BRIDGE}
+            ipAddress: ${IRONIC_VIP}
+            dhcp:
+              rangeBegin: ${DHCP_RANGE_BEGIN}
+              rangeEnd: ${DHCP_RANGE_END}
+              netmask: ${PROV_NETMASK}
+              options:
+                - "router,${HOST_IP}"
+          # IPA ramdisk + target OS image served by the in-cluster httpd.
+          images:
+            ipa: "https://get.mirantis.com/images/ironic-python-agent"
+            target: "https://get.mirantis.com/images/jammy-server-cloudimg-amd64.qcow2"
+          # Virtual-media path (PRIMARY); iPXE network boot is the fallback.
+          deployKernelUrl: ""
+          deployRamdiskUrl: ""

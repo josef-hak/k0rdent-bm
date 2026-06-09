@@ -1,0 +1,44 @@
+# bm-templates.yaml - k0rdent bare-metal provider registration.
+#
+# Applied during bake (Phase A) via: envsubst | k0s kubectl apply -f -
+# Registers the OCI Helm repo and the Provider/Cluster templates the kcm
+# Management object references. Values come from config.env.
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ${BM_HELMREPO_NAME}
+  namespace: ${KCM_NAMESPACE}
+spec:
+  type: oci
+  url: ${BM_OCI_REPO}
+  interval: 10m
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ProviderTemplate
+metadata:
+  name: ${PROVIDER_TEMPLATE}
+spec:
+  helm:
+    chartSpec:
+      chart: cluster-api-provider-metal3
+      version: ${CAPM3_VERSION}
+      sourceRef:
+        kind: HelmRepository
+        name: ${BM_HELMREPO_NAME}
+        namespace: ${KCM_NAMESPACE}
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ClusterTemplate
+metadata:
+  name: ${CLUSTER_TEMPLATE}
+  namespace: ${KCM_NAMESPACE}
+spec:
+  helm:
+    chartSpec:
+      chart: capm3-standalone-cp
+      version: ${CAPM3_VERSION}
+      sourceRef:
+        kind: HelmRepository
+        name: ${BM_HELMREPO_NAME}
+        namespace: ${KCM_NAMESPACE}
