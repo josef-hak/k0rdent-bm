@@ -9,7 +9,7 @@
 # `make <target>` (you'll be prompted for a password once per step).
 #
 #   make help            # list targets
-#   make preflight        # step 1
+#   make check           # step 1
 #   ...
 #   make units            # step 9
 #   make all             # everything (= sudo ./bake.sh)
@@ -23,13 +23,13 @@ BAKE  := $(CURDIR)/bake.sh
 RUN    = sudo bash -c 'source $(BAKE) && $(1)'
 
 .PHONY: help all \
-        preflight packages config net virtpower sushy vms cluster units \
+        check packages config net virtpower sushy vms cluster units \
         start status watch-bmh clean
 
 # ----------------------------------------------------------------------------
 help:
 	@echo "k0rdent bare-metal demo - build steps (run in order, or 'make all'):"
-	@echo "  1. make preflight   - check root / KVM / RAM"
+	@echo "  1. make check       - check root / KVM / RAM"
 	@echo "  2. make packages    - apt + docker + helm + kubectl + k0s"
 	@echo "  3. make config      - install config.env to /etc/k0rdent-bm"
 	@echo "  4. make net         - provisioning bridge + libvirt network"
@@ -50,7 +50,7 @@ all:
 	sudo $(BAKE)
 
 # ---- build steps (1:1 with bake.sh functions) ------------------------------
-preflight: ;	$(call RUN,preflight)
+check:     ;	$(call RUN,preflight)
 packages:  ;	$(call RUN,install_packages)
 config:    ;	$(call RUN,install_config)
 net:       ;	$(call RUN,setup_provisioning_net)
