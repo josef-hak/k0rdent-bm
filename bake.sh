@@ -105,7 +105,7 @@ install_config() {
 # --------------------------------------------------------------------------- #
 setup_provisioning_net() {
   log "configuring netplan host bridge '${PROV_BRIDGE}' (${HOST_IP})"
-  cat >/etc/netplan/99-provisioning.yaml <<EOF
+  cat >/etc/netplan/99-${PROV_BRIDGE}.yaml <<EOF
 network:
   version: 2
   bridges:
@@ -117,7 +117,7 @@ network:
         stp: false
         forward-delay: 0
 EOF
-  chmod 600 /etc/netplan/99-provisioning.yaml
+  chmod 600 /etc/netplan/99-${PROV_BRIDGE}.yaml
   netplan apply
   # Wait for the bridge to come up.
   for _ in $(seq 1 10); do
@@ -126,7 +126,7 @@ EOF
   ip link show "${PROV_BRIDGE}" &>/dev/null || die "bridge ${PROV_BRIDGE} did not appear"
 
   log "defining libvirt network '${PROV_BRIDGE}' (forward mode=bridge, no dhcp)"
-  cat >/tmp/provisioning-net.xml <<EOF
+  cat >/tmp/${PROV_BRIDGE}-net.xml <<EOF
 <network>
   <name>${PROV_BRIDGE}</name>
   <forward mode='bridge'/>
@@ -134,11 +134,11 @@ EOF
 </network>
 EOF
   if ! virsh net-info "${PROV_BRIDGE}" &>/dev/null; then
-    virsh net-define /tmp/provisioning-net.xml
+    virsh net-define /tmp/${PROV_BRIDGE}-net.xml
   fi
   virsh net-autostart "${PROV_BRIDGE}"
   virsh net-start "${PROV_BRIDGE}" 2>/dev/null || true
-  rm -f /tmp/provisioning-net.xml
+  rm -f /tmp/${PROV_BRIDGE}-net.xml
 }
 
 # --------------------------------------------------------------------------- #

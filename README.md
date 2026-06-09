@@ -16,7 +16,7 @@ referenced **nowhere**.
 
 | Address              | Role                                                              |
 |----------------------|-------------------------------------------------------------------|
-| `172.22.0.1`         | Host IP on the `provisioning` bridge (netplan, re-asserted each boot) |
+| `172.22.0.1`         | Host IP on the `lab` bridge (netplan, re-asserted each boot) |
 | `172.22.0.2`         | Ironic keepalived VIP (lives in the Management object)            |
 | `172.22.0.10-100`    | Ironic dnsmasq DHCP pool (Ironic owns DHCP, **not** libvirt)      |
 | `172.22.0.1:8000`    | sushy-tools Redfish endpoint                                      |
@@ -56,7 +56,7 @@ sudo ./bake.sh
 `bake.sh` will:
 
 1. Install packages (libvirt, qemu-kvm, ovmf, k0s, helm, kubectl, docker, jq, …).
-2. Configure the `provisioning` bridge (netplan) + libvirt bridge-mode network (no DHCP).
+2. Configure the `lab` bridge (netplan) + libvirt bridge-mode network (no DHCP).
 3. Set up the virt-power SSH key and sushy-tools config (conf.py, htpasswd, self-signed cert).
 4. Define two UEFI VMs `bmh-0`/`bmh-1` with **fixed** UUID + MAC, autostart off.
 5. Bring up k0s, install k0rdent + the bare-metal templates, pre-pull chart/IPA/target artifacts.
@@ -74,7 +74,7 @@ sudo poweroff                                     # then create the AMI
 
 systemd-ordered, idempotent:
 
-1. netplan asserts `172.22.0.1`; `libvirtd` up → `provisioning` net autostarts.
+1. netplan asserts `172.22.0.1`; `libvirtd` up → `lab` net autostarts.
 2. `sushy-tools.service` starts the Redfish emulator.
 3. `k0scontroller.service` brings the cluster back.
 4. `bootstrap.service` waits for the API, applies the Management patch + BMC Secrets +

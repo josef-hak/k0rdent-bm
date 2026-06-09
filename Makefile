@@ -73,7 +73,7 @@ status:
 	@echo "=== KVM ==="          ; ls -l /dev/kvm 2>&1 || true
 	@echo "=== RAM ==="          ; free -h | awk '/Mem/{print "total="$$2" used="$$3" free="$$4}'
 	@echo "=== config ==="       ; ls -l /etc/k0rdent-bm/ 2>&1 || true
-	@echo "=== bridge ==="       ; ip -br addr show provisioning 2>&1 || true
+	@echo "=== bridge ==="       ; ip -br addr show "$$(. $(CURDIR)/config.env; echo $$PROV_BRIDGE)" 2>&1 || true
 	@echo "=== libvirt net ==="  ; sudo virsh net-list --all 2>&1 || true
 	@echo "=== VMs ==="          ; sudo virsh list --all 2>&1 || true
 	@echo "=== services ==="     ; systemctl is-enabled k0scontroller sushy-tools.service bootstrap.service 2>&1 || true
