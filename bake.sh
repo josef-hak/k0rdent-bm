@@ -11,10 +11,6 @@
 # All charts pull ANONYMOUSLY from registry.mirantis.com (k0rdent Enterprise
 # + the public k0rdent-bm provider charts). No credentials are required.
 #
-# Optional environment:
-#   REGISTRY_USER, REGISTRY_PASS   -> only adds a `helm registry login`
-#                                     (e.g. to lift anonymous pull rate limits)
-#
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -315,16 +311,6 @@ PY
     k0s kubectl get --raw='/readyz' &>/dev/null && break; sleep 5
   done
   k0s kubectl get --raw='/readyz' &>/dev/null || die "k0s API never became ready"
-
-  # Charts pull anonymously; only log in if creds were explicitly provided
-  # (e.g. to lift anonymous rate limits).
-  if [[ -n "${REGISTRY_USER:-}" && -n "${REGISTRY_PASS:-}" ]]; then
-    log "helm registry login to registry.mirantis.com"
-    echo "${REGISTRY_PASS}" | helm registry login registry.mirantis.com \
-      -u "${REGISTRY_USER}" --password-stdin
-  else
-    log "no REGISTRY_USER/PASS set - pulling anonymously"
-  fi
 
   # k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
   # registry. Mirrors josef-hak/kube-sol install_kcm.sh. The chart's

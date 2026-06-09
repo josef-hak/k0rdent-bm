@@ -46,14 +46,11 @@ one place.
 
 ## Build (Phase A — run once, then snapshot)
 
-On a **KVM-capable** EC2 instance (`/dev/kvm` present), as root:
+On a **KVM-capable** EC2 instance (`/dev/kvm` present), as root. All charts pull
+anonymously from `registry.mirantis.com` — no credentials required:
 
 ```bash
-export REGISTRY_USER=...        # registry.mirantis.com pull creds
-export REGISTRY_PASS=...
-export K0RDENT_LICENSE=/path/to/license   # optional
-
-sudo -E ./bake.sh
+sudo ./bake.sh
 ```
 
 `bake.sh` will:
