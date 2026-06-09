@@ -16,7 +16,9 @@
       "Bash(make -n preflight)",
       "Bash(make -n all)",
       "Bash(make -n check)",
-      "Bash(bash -c 'set -a; source config.env; set +a; echo \"PROV_BRIDGE=$PROV_BRIDGE\"; echo \"netplan=/etc/netplan/99-${PROV_BRIDGE}.yaml\"; echo \"Ironic interface \\(from patch\\)=$PROV_BRIDGE\"')"
+      "Bash(bash -c 'set -a; source config.env; set +a; echo \"PROV_BRIDGE=$PROV_BRIDGE\"; echo \"netplan=/etc/netplan/99-${PROV_BRIDGE}.yaml\"; echo \"Ironic interface \\(from patch\\)=$PROV_BRIDGE\"')",
+      "Bash(sudo virsh net-list --all)",
+      "Bash(ip -br link)"
     ]
   }
 }
