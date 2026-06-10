@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bootstrap.sh - Phase B oneshot, runs on every boot after k0scontroller.
+# k0rdent-bm-setup.sh - Phase B oneshot, runs on every boot after k0scontroller.
 #
 # 1. Wait for the k0s API + kcm CRDs.
 # 2. Patch the Management object so Ironic uses the static provisioning net.
@@ -22,8 +22,8 @@ set +a
 export KUBECONFIG="${KUBECONFIG_PATH}"
 KUBECTL="k0s kubectl"
 
-log()  { printf '\033[1;34m[bootstrap]\033[0m %s\n' "$*"; }
-die()  { printf '\033[1;31m[bootstrap][FATAL]\033[0m %s\n' "$*" >&2; exit 1; }
+log()  { printf '\033[1;34m[setup]\033[0m %s\n' "$*"; }
+die()  { printf '\033[1;31m[setup][FATAL]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # Wait for a condition, polling. wait_for <desc> <retries> <sleep> <cmd...>
 wait_for() {
@@ -77,4 +77,4 @@ ${KUBECTL} get ns "${BMH_NAMESPACE}" &>/dev/null \
 apply_bmh "${BMH0_NAME}" "${BMH0_UUID}" "${BMH0_MAC}"
 apply_bmh "${BMH1_NAME}" "${BMH1_UUID}" "${BMH1_MAC}"
 
-log "bootstrap complete - BMHs should move Registering -> Inspecting -> Available"
+log "setup complete - BMHs should move Registering -> Inspecting -> Available"

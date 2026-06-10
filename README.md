@@ -35,8 +35,8 @@ redfish-virtualmedia+https://172.22.0.1:8000/redfish/v1/Systems/<VM-UUID>
 | `config.env` | both | **Single source of truth** — network, VM UUIDs/MACs, chart coords. Installed to `/etc/k0rdent-bm/config.env`. |
 | `bake.sh` | A (once) | Builds everything into the AMI. Idempotent; re-runnable. |
 | `phase-b/sushy-tools.service` | B (boot) | Redfish BMC emulator container, `Restart=always`. |
-| `phase-b/bootstrap.service` | B (boot) | One-shot, ordered `After=k0scontroller`. |
-| `phase-b/bootstrap.sh` | B (boot) | Waits for API/CRDs, patches the Management object, applies the BareMetalHosts. |
+| `phase-b/k0rdent-bm-setup.service` | B (boot) | One-shot, ordered `After=k0scontroller`. |
+| `phase-b/k0rdent-bm-setup.sh` | B (boot) | Waits for API/CRDs, patches the Management object, applies the BareMetalHosts. |
 | `manifests/bm-templates.yaml` | A | HelmRepository + Provider/Cluster templates. |
 | `manifests/management-patch.yaml` | B | Ironic networking merge-patch for the Management object. |
 | `manifests/bmh.yaml` | B | Per-host BMC `Secret` + `BareMetalHost` (rendered once per VM). |
@@ -66,7 +66,7 @@ Then verify and snapshot:
 
 ```bash
 virsh list --all                                  # bmh-0 / bmh-1 -> shut off
-systemctl is-enabled k0scontroller sushy-tools bootstrap
+systemctl is-enabled k0scontroller sushy-tools lab-nat k0rdent-bm-setup
 sudo poweroff                                     # then create the AMI
 ```
 
@@ -76,8 +76,9 @@ systemd-ordered, idempotent:
 
 1. netplan asserts `172.22.0.1`; `libvirtd` up → `lab` net autostarts.
 2. `sushy-tools.service` starts the Redfish emulator.
-3. `k0scontroller.service` brings the cluster back.
-4. `bootstrap.service` waits for the API, applies the Management patch + BMC Secrets +
+3. `lab-nat.service` applies NAT/forwarding for the `lab` subnet (after docker).
+4. `k0scontroller.service` brings the cluster back.
+5. `k0rdent-bm-setup.service` waits for the API, applies the Management patch + BMC Secrets +
    BareMetalHost CRs.
 
 BareMetalHosts then progress `Registering → Inspecting → Available`:
@@ -85,7 +86,7 @@ BareMetalHosts then progress `Registering → Inspecting → Available`:
 ```bash
 export KUBECONFIG=/var/lib/k0s/pki/admin.conf
 k0s kubectl -n kcm-system get baremetalhosts -w
-journalctl -u bootstrap.service -f               # bootstrap progress
+journalctl -u k0rdent-bm-setup.service -f        # setup progress
 ```
 
 ## Known caveats / to-confirm

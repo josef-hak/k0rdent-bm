@@ -27,7 +27,9 @@
       "Bash(install -d /tmp/capm3test)",
       "Bash(helm pull *)",
       "Bash(tar xzf *)",
-      "Read(//tmp/capm3test/**)"
+      "Read(//tmp/capm3test/**)",
+      "Bash(git mv *)",
+      "Bash(bash -n phase-b/k0rdent-bm-setup.sh)"
     ]
   }
 }

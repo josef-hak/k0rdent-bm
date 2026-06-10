@@ -393,18 +393,18 @@ install_bm() {
 }
 
 # --------------------------------------------------------------------------- #
-# 8. Install Phase-B systemd units + bootstrap.sh + manifests
+# 8. Install Phase-B systemd units + setup script + manifests
 # --------------------------------------------------------------------------- #
 install_phase_b() {
-  log "installing Phase-B units, bootstrap.sh and manifests"
+  log "installing Phase-B units, setup script and manifests"
   install -d -m 0755 /opt/k0rdent-bm/manifests
-  install -m 0755 "${REPO_DIR}/phase-b/bootstrap.sh" /opt/k0rdent-bm/bootstrap.sh
+  install -m 0755 "${REPO_DIR}/phase-b/k0rdent-bm-setup.sh" /opt/k0rdent-bm/k0rdent-bm-setup.sh
   install -m 0755 "${REPO_DIR}/phase-b/lab-nat.sh"   /opt/k0rdent-bm/lab-nat.sh
   install -m 0644 "${REPO_DIR}/manifests/management-patch.yaml" /opt/k0rdent-bm/manifests/
   install -m 0644 "${REPO_DIR}/manifests/bmh.yaml"             /opt/k0rdent-bm/manifests/
 
   install -m 0644 "${REPO_DIR}/phase-b/sushy-tools.service" /etc/systemd/system/
-  install -m 0644 "${REPO_DIR}/phase-b/bootstrap.service"   /etc/systemd/system/
+  install -m 0644 "${REPO_DIR}/phase-b/k0rdent-bm-setup.service" /etc/systemd/system/
   install -m 0644 "${REPO_DIR}/phase-b/lab-nat.service"     /etc/systemd/system/
 
   # Persist IPv4 forwarding (lab-nat.sh also sets it live each boot).
@@ -412,7 +412,7 @@ install_phase_b() {
 
   systemctl daemon-reload
   systemctl enable libvirtd docker k0scontroller \
-    sushy-tools.service lab-nat.service bootstrap.service
+    sushy-tools.service lab-nat.service k0rdent-bm-setup.service
   log "Phase-B units enabled"
 }
 
@@ -422,7 +422,7 @@ install_phase_b() {
 finish() {
   log "bake complete."
   log "Verify: 'virsh list --all' shows ${BMH0_NAME}/${BMH1_NAME} (shut off);"
-  log "        'systemctl is-enabled k0scontroller sushy-tools bootstrap' all enabled."
+  log "        'systemctl is-enabled k0scontroller sushy-tools k0rdent-bm-setup' all enabled."
   log "Now power off and create the AMI:  sudo poweroff"
 }
 

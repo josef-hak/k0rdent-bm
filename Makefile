@@ -44,7 +44,7 @@ help:
 	@echo "     make all         - all of the above (= sudo ./bake.sh)"
 	@echo ""
 	@echo "Operate / verify:"
-	@echo "     make start       - Phase B now: start k0s + sushy + bootstrap"
+	@echo "     make start       - Phase B now: start k0s + sushy + nat + setup"
 	@echo "     make status      - show state of bridge/VMs/services/cluster"
 	@echo "     make watch-bmh   - watch BareMetalHosts reconcile"
 
@@ -68,11 +68,11 @@ units:     ;	$(call RUN,install_phase_b)
 
 # ---- Phase B / operate -----------------------------------------------------
 # Start the boot-time services now instead of rebooting. k0scontroller comes
-# up, sushy-tools starts, then bootstrap.service patches Management + applies
-# the BareMetalHosts.
+# up, sushy-tools starts, then k0rdent-bm-setup.service patches Management +
+# applies the BareMetalHosts.
 start:
 	sudo systemctl start k0scontroller sushy-tools.service lab-nat.service
-	sudo systemctl start bootstrap.service
+	sudo systemctl start k0rdent-bm-setup.service
 
 # ---- verify / inspect ------------------------------------------------------
 status:
@@ -82,7 +82,7 @@ status:
 	@echo "=== bridge ==="       ; ip -br addr show "$$(. $(CURDIR)/config.env; echo $$PROV_BRIDGE)" 2>&1 || true
 	@echo "=== libvirt net ==="  ; sudo virsh net-list --all 2>&1 || true
 	@echo "=== VMs ==="          ; sudo virsh list --all 2>&1 || true
-	@echo "=== services ===" ; for s in k0scontroller sushy-tools.service lab-nat.service bootstrap.service; do \
+	@echo "=== services ===" ; for s in k0scontroller sushy-tools.service lab-nat.service k0rdent-bm-setup.service; do \
 	  printf '  %-22s enabled=%-10s active=%s\n' "$$s" \
 	    "$$(systemctl is-enabled $$s 2>/dev/null)" \
 	    "$$(systemctl is-active  $$s 2>/dev/null)"; \

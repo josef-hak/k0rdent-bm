@@ -1,0 +1,18 @@
+# Phase B: one-shot setup that applies the Management patch (Ironic networking)
+# and the BareMetalHost CRs once the k0s API is up. Idempotent, so re-running on
+# every boot is harmless.
+[Unit]
+Description=k0rdent bare-metal demo setup (Management patch + BareMetalHosts)
+After=k0scontroller.service sushy-tools.service network-online.target
+Wants=k0scontroller.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/k0rdent-bm/config.env
+ExecStart=/opt/k0rdent-bm/k0rdent-bm-setup.sh
+# Note: Restart= is ignored for Type=oneshot, so the script does its own
+# bounded wait/retry loops for the API, CRDs and Management object.
+
+[Install]
+WantedBy=multi-user.target
