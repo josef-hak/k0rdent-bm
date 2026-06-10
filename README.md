@@ -93,6 +93,7 @@ BareMetalHosts then progress `Registering → Inspecting → Available`:
 export KUBECONFIG=/var/lib/k0s/pki/admin.conf
 k0s kubectl -n kcm-system get baremetalhosts -w
 journalctl -u k0rdent-bm-setup.service -f        # setup progress
+sudo virsh console bmh-0    # see (virtual) bare metal host console
 ```
 
 ## Known caveats / to-confirm
