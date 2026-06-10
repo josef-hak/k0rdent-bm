@@ -82,8 +82,11 @@ status:
 	@echo "=== bridge ==="       ; ip -br addr show "$$(. $(CURDIR)/config.env; echo $$PROV_BRIDGE)" 2>&1 || true
 	@echo "=== libvirt net ==="  ; sudo virsh net-list --all 2>&1 || true
 	@echo "=== VMs ==="          ; sudo virsh list --all 2>&1 || true
-	@echo "=== services ==="     ; systemctl is-enabled k0scontroller sushy-tools.service bootstrap.service 2>&1 || true
-	@echo "=== services active ===" ; systemctl is-active k0scontroller sushy-tools.service bootstrap.service 2>&1 || true
+	@echo "=== services ===" ; for s in k0scontroller sushy-tools.service bootstrap.service; do \
+	  printf '  %-22s enabled=%-10s active=%s\n' "$$s" \
+	    "$$(systemctl is-enabled $$s 2>/dev/null)" \
+	    "$$(systemctl is-active  $$s 2>/dev/null)"; \
+	done
 	@echo "=== sushy container ===" ; sudo docker ps --filter name=sushy-tools --format '{{.Names}} {{.Status}}' 2>&1 || true
 	@echo "=== BareMetalHosts ===" ; sudo k0s kubectl -n kcm-system get baremetalhosts 2>&1 || echo "(cluster not up)"
 
