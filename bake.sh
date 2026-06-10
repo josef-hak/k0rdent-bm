@@ -370,6 +370,9 @@ install_kcm() {
     -f "${REPO_DIR}/helm/kcm.yaml" \
     --wait --timeout 20m \
     || warn "kcm install returned non-zero"
+
+  k0s kubectl apply -f "${REPO_DIR}/manifests/ingress-ui.yaml"
+  k0s kubectl apply -f "${REPO_DIR}/manifests/k0rdent-catalog.yaml"
 }
 
 # 7c. Bare-metal provider templates + artifact pre-pull. Last cluster step, so

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k0rdent-ui-ingress
+  namespace: kcm-system
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  # ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kcm-k0rdent-ui
+            port:
+              number: 3000
