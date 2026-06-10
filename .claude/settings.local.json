@@ -49,7 +49,11 @@
       "Bash(echo)",
       "Bash(echo \"=== applnul se patch? Management providers ===\")",
       "Bash(bash -n runtime/lab-nat.sh)",
-      "Bash(bash -c 'set -a; source config.env; set +a; echo \"dummy iface: ${PROV_BRIDGE}-up  master ${PROV_BRIDGE}\"')"
+      "Bash(bash -c 'set -a; source config.env; set +a; echo \"dummy iface: ${PROV_BRIDGE}-up  master ${PROV_BRIDGE}\"')",
+      "Bash(sudo virsh dumpxml bmh-0)",
+      "Bash(awk '/<os>/,/<\\\\/os>/')",
+      "Bash(awk '/<interface/,/<\\\\/interface>/')",
+      "Bash(python3 -c 'import yaml,sys; yaml.safe_load\\(open\\(\"manifests/bm-cld-standalone.yaml\"\\)\\); print\\(\"YAML OK\"\\)')"
     ]
   }
 }
