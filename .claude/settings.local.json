@@ -29,7 +29,15 @@
       "Bash(tar xzf *)",
       "Read(//tmp/capm3test/**)",
       "Bash(git mv *)",
-      "Bash(bash -n phase-b/k0rdent-bm-setup.sh)"
+      "Bash(bash -n phase-b/k0rdent-bm-setup.sh)",
+      "Bash(sed -i 's/\\\\[bake\\\\]/[install]/g; s|phase-b/|runtime/|g; s/bake\\\\.sh/install.sh/g' install.sh)",
+      "Bash(sed -i 's/bake\\\\.sh/install.sh/g; s/\\\\bBAKE\\\\b/INSTALL/g' Makefile)",
+      "Bash(sed -i 's|phase-b/|runtime/|g; s/bake\\\\.sh/install.sh/g' README.md)",
+      "Bash(bash -n install.sh)",
+      "Bash(bash -c 'source ./install.sh && declare -F install_runtime install_k0s install_bm >/dev/null && echo \"functions ok; install_phase_b gone:\" $\\(declare -F install_phase_b >/dev/null && echo NO || echo yes\\)')",
+      "Bash(make -n units)",
+      "Bash(sed -n '1,20p')",
+      "Bash(sed -n '44,47p' Makefile)"
     ]
   }
 }

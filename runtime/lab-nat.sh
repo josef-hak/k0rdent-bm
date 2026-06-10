@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# lab-nat.sh - Phase B: give the isolated `lab` provisioning network outbound
+# lab-nat.sh - runtime: give the isolated `lab` provisioning network outbound
 # internet (so bare-metal nodes can pull images / cloud-init once deployed).
 #
 # Why this is needed: the libvirt `lab` net is forward mode=bridge (Ironic owns
@@ -18,7 +18,7 @@ source /etc/k0rdent-bm/config.env
 
 log() { printf '\033[1;36m[lab-nat]\033[0m %s\n' "$*"; }
 
-# IPv4 forwarding (re-asserted each boot; also dropped into sysctl.d at bake).
+# IPv4 forwarding (re-asserted each boot; also dropped into sysctl.d at install).
 sysctl -w net.ipv4.ip_forward=1 >/dev/null
 
 # Idempotent helpers: add the rule only if an identical one isn't already there.

@@ -30,37 +30,38 @@ redfish-virtualmedia+https://172.22.0.1:8000/redfish/v1/Systems/<VM-UUID>
 
 ## Files
 
-| File | Phase | Purpose |
-|------|-------|---------|
+| File | When | Purpose |
+|------|------|---------|
 | `config.env` | both | **Single source of truth** — network, VM UUIDs/MACs, chart coords. Installed to `/etc/k0rdent-bm/config.env`. |
-| `bake.sh` | A (once) | Builds everything into the AMI. Idempotent; re-runnable. |
-| `phase-b/sushy-tools.service` | B (boot) | Redfish BMC emulator container, `Restart=always`. |
-| `phase-b/k0rdent-bm-setup.service` | B (boot) | One-shot, ordered `After=k0scontroller`. |
-| `phase-b/k0rdent-bm-setup.sh` | B (boot) | Waits for API/CRDs, patches the Management object, applies the BareMetalHosts. |
-| `manifests/bm-templates.yaml` | A | HelmRepository + Provider/Cluster templates. |
-| `manifests/management-patch.yaml` | B | Ironic networking merge-patch for the Management object. |
-| `manifests/bmh.yaml` | B | Per-host BMC `Secret` + `BareMetalHost` (rendered once per VM). |
+| `install.sh` | install (once) | Builds everything into the AMI. Idempotent; re-runnable. |
+| `runtime/sushy-tools.service` | runtime (boot) | Redfish BMC emulator container, `Restart=always`. |
+| `runtime/lab-nat.service` | runtime (boot) | NAT/forwarding for the `lab` network (after docker). |
+| `runtime/k0rdent-bm-setup.service` | runtime (boot) | One-shot, ordered `After=k0scontroller`. |
+| `runtime/k0rdent-bm-setup.sh` | runtime (boot) | Waits for API/CRDs, patches the Management object, applies the BareMetalHosts. |
+| `manifests/bm-templates.yaml` | install | HelmRepository + Provider/Cluster templates. |
+| `manifests/management-patch.yaml` | runtime | Ironic networking merge-patch for the Management object. |
+| `manifests/bmh.yaml` | runtime | Per-host BMC `Secret` + `BareMetalHost` (rendered once per VM). |
 
 All YAML is a template filled by `envsubst` from `config.env`, so config lives in exactly
 one place.
 
-## Build (Phase A — run once, then snapshot)
+## Build (install.sh — run once, then snapshot)
 
 On a **KVM-capable** EC2 instance (`/dev/kvm` present), as root. All charts pull
 anonymously from `registry.mirantis.com` — no credentials required:
 
 ```bash
-sudo ./bake.sh
+sudo ./install.sh
 ```
 
-`bake.sh` will:
+`install.sh` will:
 
 1. Install packages (libvirt, qemu-kvm, ovmf, k0s, helm, kubectl, docker, jq, …).
 2. Configure the `lab` bridge (netplan) + libvirt bridge-mode network (no DHCP).
 3. Set up the virt-power SSH key and sushy-tools config (conf.py, htpasswd, self-signed cert).
 4. Define two UEFI VMs `bmh-0`/`bmh-1` with **fixed** UUID + MAC, autostart off.
 5. Bring up k0s, install k0rdent + the bare-metal templates, pre-pull chart/IPA/target artifacts.
-6. Install + enable the Phase-B systemd units.
+6. Install + enable the runtime systemd units.
 
 Then verify and snapshot:
 
@@ -70,7 +71,7 @@ systemctl is-enabled k0scontroller sushy-tools lab-nat k0rdent-bm-setup
 sudo poweroff                                     # then create the AMI
 ```
 
-## Boot (Phase B — every boot, automatic)
+## Boot / runtime (every boot, automatic)
 
 systemd-ordered, idempotent:
 
@@ -92,7 +93,7 @@ journalctl -u k0rdent-bm-setup.service -f        # setup progress
 ## Known caveats / to-confirm
 
 - **RAM (PLAN open-risk #2):** `VM_RAM_MB=6144` × 2 + ~4 GB cluster ≈ 16 GB. On a ~15 GiB
-  host this is over budget — `bake.sh` warns but does not block. Lower `VM_RAM_MB` to `4096`
+  host this is over budget — `install.sh` warns but does not block. Lower `VM_RAM_MB` to `4096`
   in `config.env` if the cluster or VMs OOM.
 - **Schema guesses (PLAN risks #1, #3)** — verify against the actually-installed charts/CRDs
   before relying on the image:

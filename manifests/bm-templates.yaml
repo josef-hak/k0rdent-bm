@@ -1,6 +1,6 @@
 # bm-templates.yaml - k0rdent bare-metal provider registration.
 #
-# Applied during bake (Phase A) via: envsubst | k0s kubectl apply -f -
+# Applied by install.sh via: envsubst | k0s kubectl apply -f -
 # Registers the OCI Helm repo and the Provider/Cluster templates the kcm
 # Management object references. Values come from config.env.
 ---

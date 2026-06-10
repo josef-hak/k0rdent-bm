@@ -1,6 +1,6 @@
 # traefik.yaml - helm values for the Traefik ingress controller.
 #
-# bake.sh passes this as: helm upgrade --install traefik <chart> -f <this>
+# install.sh passes this as: helm upgrade --install traefik <chart> -f <this>
 # Mirrors josef-hak/kube-sol helm/traefik.yaml: run Traefik as a DaemonSet and
 # bind it to host ports 80/443 so the k0rdent UI (and other Ingress/IngressRoute
 # services) are reachable on the node's address.

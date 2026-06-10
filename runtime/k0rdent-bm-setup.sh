@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# k0rdent-bm-setup.sh - Phase B oneshot, runs on every boot after k0scontroller.
+# k0rdent-bm-setup.sh - runtime oneshot, runs on every boot after k0scontroller.
 #
 # 1. Wait for the k0s API + kcm CRDs.
 # 2. Patch the Management object so Ironic uses the static provisioning net.

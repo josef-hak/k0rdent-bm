@@ -1,4 +1,4 @@
-# Phase B: NAT + IPv4 forwarding for the isolated `lab` provisioning network.
+# runtime: NAT + IPv4 forwarding for the isolated `lab` provisioning network.
 # Must run AFTER docker (docker sets the FORWARD policy to DROP on start) and
 # after libvirtd brings the bridge up. Idempotent, so re-running each boot is
 # harmless.

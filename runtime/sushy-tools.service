@@ -1,4 +1,4 @@
-# Phase B: sushy-tools Redfish BMC emulator for the libvirt VMs.
+# runtime: sushy-tools Redfish BMC emulator for the libvirt VMs.
 # Drives the host libvirt over qemu+ssh://root@127.0.0.1 (virt-power pattern).
 # systemd owns the lifecycle (Restart=always) rather than docker's restart policy.
 [Unit]

@@ -1,9 +1,9 @@
-# Makefile - run the k0rdent bare-metal demo build (bake.sh) one step at a time.
+# Makefile - run the k0rdent bare-metal demo build (install.sh) one step at a time.
 #
-# Each "build step" target sources bake.sh and runs exactly one of its
+# Each "build step" target sources install.sh and runs exactly one of its
 # functions, so steps are individually re-runnable and idempotent (each guards
-# against already-done state). `make all` runs the whole bake in one shot
-# (identical to `sudo ./bake.sh`).
+# against already-done state). `make all` runs the whole install in one shot
+# (identical to `sudo ./install.sh`).
 #
 # All build steps need root, so the recipes invoke sudo themselves -> just run
 # `make <target>` (you'll be prompted for a password once per step).
@@ -12,15 +12,15 @@
 #   make check           # step 1
 #   ...
 #   make units            # step 9
-#   make all             # everything (= sudo ./bake.sh)
-#   make start           # Phase B: start services now (instead of rebooting)
+#   make all             # everything (= sudo ./install.sh)
+#   make start           # runtime: start services now (instead of rebooting)
 #   make status          # show current state of everything
 
 SHELL := /bin/bash
-BAKE  := $(CURDIR)/bake.sh
-# Source bake.sh (defines functions; main() is guarded so it won't run) then
+INSTALL  := $(CURDIR)/install.sh
+# Source install.sh (defines functions; main() is guarded so it won't run) then
 # call one function as root.
-RUN    = sudo bash -c 'source $(BAKE) && $(1)'
+RUN    = sudo bash -c 'source $(INSTALL) && $(1)'
 
 .PHONY: help all \
         check packages config net virtpower sushy vms k0s ingress kcm bm units \
@@ -40,19 +40,19 @@ help:
 	@echo "  9. make ingress     - Traefik ingress (expose k0rdent UI on 80/443)"
 	@echo " 10. make kcm         - k0rdent Enterprise management cluster"
 	@echo " 11. make bm          - BM provider templates + artifact pre-pull"
-	@echo " 12. make units       - install + enable Phase-B systemd units"
-	@echo "     make all         - all of the above (= sudo ./bake.sh)"
+	@echo " 12. make units       - install + enable runtime systemd units"
+	@echo "     make all         - all of the above (= sudo ./install.sh)"
 	@echo ""
 	@echo "Operate / verify:"
-	@echo "     make start       - Phase B now: start k0s + sushy + nat + setup"
+	@echo "     make start       - start runtime services now: k0s + sushy + nat + setup"
 	@echo "     make status      - show state of bridge/VMs/services/cluster"
 	@echo "     make watch-bmh   - watch BareMetalHosts reconcile"
 
 # ---- full build ------------------------------------------------------------
 all:
-	sudo $(BAKE)
+	sudo $(INSTALL)
 
-# ---- build steps (1:1 with bake.sh functions) ------------------------------
+# ---- build steps (1:1 with install.sh functions) ------------------------------
 check:     ;	$(call RUN,preflight)
 packages:  ;	$(call RUN,install_packages)
 config:    ;	$(call RUN,install_config)
@@ -64,9 +64,9 @@ k0s:       ;	$(call RUN,install_k0s)
 ingress:   ;	$(call RUN,install_ingress)
 kcm:       ;	$(call RUN,install_kcm)
 bm:        ;	$(call RUN,install_bm)
-units:     ;	$(call RUN,install_phase_b)
+units:     ;	$(call RUN,install_runtime)
 
-# ---- Phase B / operate -----------------------------------------------------
+# ---- runtime / operate -----------------------------------------------------
 # Start the boot-time services now instead of rebooting. k0scontroller comes
 # up, sushy-tools starts, then k0rdent-bm-setup.service patches Management +
 # applies the BareMetalHosts.
@@ -95,4 +95,4 @@ watch-bmh:
 
 # Remove the throwaway helper from the earlier sourcing approach (if present).
 clean:
-	rm -f $(CURDIR)/.bake-fns.sh
+	rm -f $(CURDIR)/.install-fns.sh

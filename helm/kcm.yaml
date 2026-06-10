@@ -1,6 +1,6 @@
 # kcm.yaml - helm values override for the k0rdent Enterprise (kcm) chart.
 #
-# bake.sh passes this directly:
+# install.sh passes this directly:
 #   helm upgrade --install kcm oci://registry.mirantis.com/k0rdent-enterprise/charts/k0rdent-enterprise -f <this>
 #
 # Enables the k0rdent UI with basic auth (demo-grade, hardcoded). The UI is

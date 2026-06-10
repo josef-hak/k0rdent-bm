@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bake.sh - Phase A: build the single-VM k0rdent bare-metal demo into an AMI.
+# install.sh - build the single-VM k0rdent bare-metal demo into an AMI.
 #
 # Run ONCE on a KVM-capable EC2 instance as root, then power off and snapshot.
 # Everything here is pinned to the static provisioning network (config.env) so
@@ -17,9 +17,9 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_SRC="${REPO_DIR}/config.env"
 CONFIG_DST="/etc/k0rdent-bm/config.env"
 
-log()  { printf '\033[1;32m[bake]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[bake][WARN]\033[0m %s\n' "$*" >&2; }
-die()  { printf '\033[1;31m[bake][FATAL]\033[0m %s\n' "$*" >&2; exit 1; }
+log()  { printf '\033[1;32m[install]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[install][WARN]\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[1;31m[install][FATAL]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # Auto-export so envsubst can substitute config vars into manifest templates.
 set -a
@@ -169,7 +169,7 @@ setup_virtpower_key() {
 
 # --------------------------------------------------------------------------- #
 # 5. sushy-tools config: conf.py + htpasswd + self-signed TLS cert.
-#    Runs later as a --net host --restart=always container (Phase B unit).
+#    Runs later as a --net host --restart=always container (runtime unit).
 # --------------------------------------------------------------------------- #
 setup_sushy() {
   log "writing sushy-tools config to ${SUSHY_CONF_DIR}"
@@ -283,8 +283,8 @@ define_vms() {
 # --------------------------------------------------------------------------- #
 # 7. k0s single-node controller + k0rdent + bare-metal templates.
 #    Split into three independently-runnable steps (install_k0s / install_kcm /
-#    install_bm). bake brings the cluster up to install charts, then install_bm
-#    stops it; Phase B restarts k0scontroller on every boot.
+#    install_bm). install brings the cluster up to install charts, then install_bm
+#    stops it; runtime restarts k0scontroller on every boot.
 # --------------------------------------------------------------------------- #
 
 # Start k0scontroller (if not already up) and block until the API is ready.
@@ -358,7 +358,7 @@ install_ingress() {
 # 7b. k0rdent Enterprise management cluster (kcm) from the public Enterprise OCI
 #     registry. Mirrors josef-hak/kube-sol install_kcm.sh. The chart's
 #     controller.createManagement=true creates the "kcm" Management object that
-#     Phase B patches for Ironic.
+#     runtime patches for Ironic.
 install_kcm() {
   wait_k0s_api
   log "installing k0rdent Enterprise (kcm)"
@@ -376,7 +376,7 @@ install_kcm() {
 }
 
 # 7c. Bare-metal provider templates + artifact pre-pull. Last cluster step, so
-#     it stops k0scontroller (Phase B restarts it on boot).
+#     it stops k0scontroller (runtime restarts it on boot).
 install_bm() {
   wait_k0s_api
   log "creating bare-metal HelmRepository + Provider/Cluster templates"
@@ -388,24 +388,24 @@ install_bm() {
   # the CAPM3 install. (The old get.mirantis.com/images/* URLs were wrong - the
   # chart's real image URLs live under get.mirantis.com/k0rdent-enterprise/...)
 
-  # log "stopping k0scontroller (Phase B restarts it on boot)"
+  # log "stopping k0scontroller (runtime restarts it on boot)"
   # systemctl stop k0scontroller
 }
 
 # --------------------------------------------------------------------------- #
-# 8. Install Phase-B systemd units + setup script + manifests
+# 8. Install runtime systemd units + setup script + manifests
 # --------------------------------------------------------------------------- #
-install_phase_b() {
-  log "installing Phase-B units, setup script and manifests"
+install_runtime() {
+  log "installing runtime units, setup script and manifests"
   install -d -m 0755 /opt/k0rdent-bm/manifests
-  install -m 0755 "${REPO_DIR}/phase-b/k0rdent-bm-setup.sh" /opt/k0rdent-bm/k0rdent-bm-setup.sh
-  install -m 0755 "${REPO_DIR}/phase-b/lab-nat.sh"   /opt/k0rdent-bm/lab-nat.sh
+  install -m 0755 "${REPO_DIR}/runtime/k0rdent-bm-setup.sh" /opt/k0rdent-bm/k0rdent-bm-setup.sh
+  install -m 0755 "${REPO_DIR}/runtime/lab-nat.sh"   /opt/k0rdent-bm/lab-nat.sh
   install -m 0644 "${REPO_DIR}/manifests/management-patch.yaml" /opt/k0rdent-bm/manifests/
   install -m 0644 "${REPO_DIR}/manifests/bmh.yaml"             /opt/k0rdent-bm/manifests/
 
-  install -m 0644 "${REPO_DIR}/phase-b/sushy-tools.service" /etc/systemd/system/
-  install -m 0644 "${REPO_DIR}/phase-b/k0rdent-bm-setup.service" /etc/systemd/system/
-  install -m 0644 "${REPO_DIR}/phase-b/lab-nat.service"     /etc/systemd/system/
+  install -m 0644 "${REPO_DIR}/runtime/sushy-tools.service" /etc/systemd/system/
+  install -m 0644 "${REPO_DIR}/runtime/k0rdent-bm-setup.service" /etc/systemd/system/
+  install -m 0644 "${REPO_DIR}/runtime/lab-nat.service"     /etc/systemd/system/
 
   # Persist IPv4 forwarding (lab-nat.sh also sets it live each boot).
   echo 'net.ipv4.ip_forward=1' >/etc/sysctl.d/99-k0rdent-bm.conf
@@ -413,14 +413,14 @@ install_phase_b() {
   systemctl daemon-reload
   systemctl enable libvirtd docker k0scontroller \
     sushy-tools.service lab-nat.service k0rdent-bm-setup.service
-  log "Phase-B units enabled"
+  log "runtime units enabled"
 }
 
 # --------------------------------------------------------------------------- #
 # 9. Final
 # --------------------------------------------------------------------------- #
 finish() {
-  log "bake complete."
+  log "install complete."
   log "Verify: 'virsh list --all' shows ${BMH0_NAME}/${BMH1_NAME} (shut off);"
   log "        'systemctl is-enabled k0scontroller sushy-tools k0rdent-bm-setup' all enabled."
   log "Now power off and create the AMI:  sudo poweroff"
@@ -438,11 +438,11 @@ main() {
   install_ingress
   install_kcm
   install_bm
-  install_phase_b
+  install_runtime
   finish
 }
 
-# Run the full bake only when executed directly. When this file is *sourced*
+# Run the full install only when executed directly. When this file is *sourced*
 # (e.g. by the Makefile, to call one step at a time), the functions are defined
 # but main() does not run.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -1,4 +1,4 @@
-# Phase B: one-shot setup that applies the Management patch (Ironic networking)
+# runtime: one-shot setup that applies the Management patch (Ironic networking)
 # and the BareMetalHost CRs once the k0s API is up. Idempotent, so re-running on
 # every boot is harmless.
 [Unit]
