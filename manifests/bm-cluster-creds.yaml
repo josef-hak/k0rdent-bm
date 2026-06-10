@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bm-cluster-secret
+  namespace: kcm-system
+  labels:
+    k0rdent.mirantis.com/component: "kcm"
+type: Opaque
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: Credential
+metadata:
+  name: bm-credential
+  namespace: kcm-system
+spec:
+  description: CAPM3 Credentials
+  identityRef:
+    apiVersion: v1
+    kind: Secret
+    name: bm-cluster-secret
+    namespace: kcm-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: capm3-cluster-credential-resource-template
+  namespace: kcm-system
+  labels:
+    k0rdent.mirantis.com/component: "kcm"
+  annotations:
+    projectsveltos.io/template: "true"
