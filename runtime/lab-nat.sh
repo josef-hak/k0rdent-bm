@@ -18,6 +18,17 @@ source /etc/k0rdent-bm/config.env
 
 log() { printf '\033[1;36m[lab-nat]\033[0m %s\n' "$*"; }
 
+# Give the lab bridge a permanent carrier via an always-up dummy slave, so it
+# stays UP even with no VMs running. Without a carrier the bridge is DOWN, and
+# keepalived (in the Ironic pod) refuses to assign the VIP to it -> Ironic hangs
+# waiting for ${IRONIC_VIP}. The VMs' tap interfaces only appear once Ironic
+# powers them on, so we can't rely on them for the bridge to come up first.
+ip link show "${PROV_BRIDGE}-up" &>/dev/null || ip link add "${PROV_BRIDGE}-up" type dummy
+ip link set "${PROV_BRIDGE}-up" master "${PROV_BRIDGE}"
+ip link set "${PROV_BRIDGE}-up" up
+ip link set "${PROV_BRIDGE}" up
+log "lab bridge ${PROV_BRIDGE} carrier ensured (via ${PROV_BRIDGE}-up)"
+
 # IPv4 forwarding (re-asserted each boot; also dropped into sysctl.d at install).
 sysctl -w net.ipv4.ip_forward=1 >/dev/null
 

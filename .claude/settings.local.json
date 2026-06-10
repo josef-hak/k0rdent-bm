@@ -47,7 +47,9 @@
       "Bash(echo \"=== kde je setup skript \\(poslední řádky\\) ===\")",
       "Bash(sudo journalctl -u k0rdent-bm-setup.service -n 25 --no-pager)",
       "Bash(echo)",
-      "Bash(echo \"=== applnul se patch? Management providers ===\")"
+      "Bash(echo \"=== applnul se patch? Management providers ===\")",
+      "Bash(bash -n runtime/lab-nat.sh)",
+      "Bash(bash -c 'set -a; source config.env; set +a; echo \"dummy iface: ${PROV_BRIDGE}-up  master ${PROV_BRIDGE}\"')"
     ]
   }
 }
