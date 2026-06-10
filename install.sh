@@ -385,13 +385,23 @@ install_k0s() {
   if [[ ! -f /etc/k0s/k0s.yaml ]]; then
     install -d -m 0755 /etc/k0s
     k0s config create >/etc/k0s/k0s.yaml
-    # Pin API SANs to loopback + static host IP (never eth0).
-    python3 - "$K0S_API_SANS" <<'PY'
+    # Pin API + etcd to the static lab IP, never eth0. `k0s config create`
+    # bakes the current eth0 IP into spec.api.address AND
+    # spec.storage.etcd.peerAddress; on a snapshot clone that gets a new eth0 IP
+    # both would fail to bind. 172.22.0.1 (HOST_IP) is asserted by netplan on the
+    # lab bridge every boot, so it's stable across reboot + clone.
+    python3 - "$K0S_API_SANS" "$HOST_IP" <<'PY'
 import sys, yaml
 sans = sys.argv[1].split(',')
+host_ip = sys.argv[2]
 p = '/etc/k0s/k0s.yaml'
 d = yaml.safe_load(open(p))
-d.setdefault('spec', {}).setdefault('api', {})['sans'] = sans
+api = d.setdefault('spec', {}).setdefault('api', {})
+api['address'] = host_ip
+api['sans'] = sans
+storage = d['spec'].setdefault('storage', {})
+if storage.get('type', 'etcd') == 'etcd':
+    storage.setdefault('etcd', {})['peerAddress'] = host_ip
 yaml.safe_dump(d, open(p, 'w'))
 PY
   fi
