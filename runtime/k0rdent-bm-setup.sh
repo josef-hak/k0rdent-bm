@@ -36,6 +36,20 @@ wait_for() {
   die "timed out waiting for ${desc}"
 }
 
+# Retry a command until it succeeds. For transient admission-webhook errors
+# right after boot/provider install (the k0rdent/metal3 webhooks may not be
+# serving yet). retry <desc> <tries> <sleep> <cmd...>
+retry() {
+  local desc="$1" tries="$2" naptime="$3"; shift 3
+  local i
+  for i in $(seq 1 "${tries}"); do
+    if "$@"; then return 0; fi
+    log "retry ${desc} ${i}/${tries} (transient error - webhook not ready?)"
+    sleep "${naptime}"
+  done
+  die "gave up: ${desc}"
+}
+
 # --------------------------------------------------------------------------- #
 # 1. Wait for the k0s API + the Management object (created by the kcm install).
 # --------------------------------------------------------------------------- #
@@ -57,8 +71,9 @@ wait_for "Management/${MGMT_NAME}" 60 5 \
 log "rendering + applying Management patch"
 rendered_patch="$(mktemp)"
 envsubst <"${MANIFESTS}/management-patch.yaml" >"${rendered_patch}"
-${KUBECTL} patch management.k0rdent.mirantis.com "${MGMT_NAME}" \
-  --type merge --patch-file "${rendered_patch}"
+retry "Management patch" 60 5 \
+  ${KUBECTL} patch management.k0rdent.mirantis.com "${MGMT_NAME}" \
+    --type merge --patch-file "${rendered_patch}"
 rm -f "${rendered_patch}"
 
 # --------------------------------------------------------------------------- #
@@ -72,8 +87,13 @@ wait_for "BareMetalHost CRD" 120 5 \
 apply_bmh() {
   local name="$1" uuid="$2" mac="$3"
   log "applying BareMetalHost ${name}"
+  local rendered; rendered="$(mktemp)"
   BMH_NAME="${name}" BMH_UUID="${uuid}" BMH_MAC="${mac}" \
-    envsubst <"${MANIFESTS}/bmh.yaml" | ${KUBECTL} apply -f -
+    envsubst <"${MANIFESTS}/bmh.yaml" >"${rendered}"
+  # Render to a file (not a pipe) so retry can re-run apply if the metal3
+  # admission webhook isn't serving yet.
+  retry "apply BMH ${name}" 30 5 ${KUBECTL} apply -f "${rendered}"
+  rm -f "${rendered}"
 }
 
 # Ensure target namespace exists.
