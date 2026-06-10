@@ -247,14 +247,17 @@ define_vm() {
   <on_crash>destroy</on_crash>
   <devices>
     <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <!-- OS disk on SATA so it enumerates as /dev/sda - Metal3/Ironic's default
+         rootDeviceHint is {name: /dev/sda}; a virtio disk (/dev/vda) wouldn't
+         match and deploy.write_image fails with "No suitable device". -->
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
       <source file='${disk}'/>
-      <target dev='vda' bus='virtio'/>
+      <target dev='sda' bus='sata'/>
     </disk>
     <disk type='file' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <target dev='sda' bus='sata'/>
+      <target dev='sdb' bus='sata'/>
       <readonly/>
     </disk>
     <interface type='network'>

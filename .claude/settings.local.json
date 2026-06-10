@@ -59,7 +59,9 @@
       "Bash(bash -c 'set -a; source config.env; set +a; envsubst < manifests/management-patch.yaml')",
       "Bash(tee /tmp/mp.yaml)",
       "Bash(python3 -c 'import yaml; d=yaml.safe_load\\(open\\(\"/tmp/mp.yaml\"\\)\\); ps=d[\"spec\"][\"providers\"]; print\\(f\"\\\\nproviderů celkem: {len\\(ps\\)}\"\\); print\\(\"metal3 má config:\", any\\(p[\"name\"]==\"cluster-api-provider-metal3\" and \"config\" in p for p in ps\\)\\)')",
-      "Bash(rm -f /tmp/mp.yaml)"
+      "Bash(rm -f /tmp/mp.yaml)",
+      "Bash(virt-install --help)",
+      "Bash(virt-install --version)"
     ]
   }
 }
