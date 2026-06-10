@@ -24,7 +24,7 @@ RUN    = sudo bash -c 'source $(INSTALL) && $(1)'
 
 .PHONY: help all \
         check packages config tune net virtpower sushy vms k0s ingress kcm bm units \
-        start status watch-bmh clean
+        start status watch-bmh prep-ami clean
 
 # ----------------------------------------------------------------------------
 help:
@@ -48,6 +48,7 @@ help:
 	@echo "     make start       - start runtime services now: k0s + sushy + nat + setup"
 	@echo "     make status      - show state of bridge/VMs/services/cluster"
 	@echo "     make watch-bmh   - watch BareMetalHosts reconcile"
+	@echo "     make prep-ami    - strip login SSH keys (run before snapshot)"
 
 # ---- full build ------------------------------------------------------------
 all:
@@ -94,6 +95,10 @@ status:
 
 watch-bmh:
 	sudo KUBECONFIG=/var/lib/k0s/pki/admin.conf k0s kubectl -n kcm-system get baremetalhosts -w
+
+# Run as the LAST step before snapshotting: strip login SSH keys (keeps the
+# virt-power key for sushy) + cloud-init clean, so they don't bake into the AMI.
+prep-ami:  ;	$(call RUN,prep_ami)
 
 # Remove the throwaway helper from the earlier sourcing approach (if present).
 clean:

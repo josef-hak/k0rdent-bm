@@ -78,7 +78,13 @@
       "Bash(python3 - \"127.0.0.1,172.22.0.1\" \"172.22.0.1\")",
       "Bash(rm -f k0s-test.yaml)",
       "Bash(sudo rm -f k0s-test.yaml)",
-      "Bash(rm -f /tmp/k0schk.yaml)"
+      "Bash(rm -f /tmp/k0schk.yaml)",
+      "Bash(sudo cat /root/.ssh/authorized_keys)",
+      "Bash(sed -E 's/\\(AAAA[A-Za-z0-9+/]{20}\\).*/\\\\1.../')",
+      "Bash(sudo cat /home/ubuntu/.ssh/authorized_keys)",
+      "Bash(sudo cat /root/.ssh/k0rdent-bm-virtpower.pub)",
+      "Bash(bash -c 'source ./install.sh && declare -F prep_ami >/dev/null && echo \"prep_ami defined\"')",
+      "Bash(make -n prep-ami)"
     ]
   }
 }

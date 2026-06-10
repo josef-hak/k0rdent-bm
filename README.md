@@ -72,8 +72,14 @@ Then verify and snapshot:
 ```bash
 virsh list --all                                  # bmh-0 / bmh-1 -> shut off
 systemctl is-enabled k0scontroller sushy-tools lab-nat k0rdent-bm-setup
+make prep-ami                                     # strip login SSH keys (keep virt-power) + cloud-init clean
 sudo poweroff                                     # then create the AMI
 ```
+
+`make prep-ami` reduces root's `authorized_keys` to just the virt-power key (sushy needs
+it on every clone), removes human users' `authorized_keys` (cloud-init re-injects the new
+instance's launch key on first boot), and runs `cloud-init clean` so the clone regenerates
+SSH host keys and per-instance state.
 
 ## Boot / runtime (every boot, automatic)
 

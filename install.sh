@@ -499,7 +499,37 @@ finish() {
   log "install complete."
   log "Verify: 'virsh list --all' shows ${BMH0_NAME}/${BMH1_NAME} (shut off);"
   log "        'systemctl is-enabled k0scontroller sushy-tools k0rdent-bm-setup' all enabled."
-  log "Now power off and create the AMI:  sudo poweroff"
+  log "Before snapshot run 'make prep-ami' to strip login SSH keys."
+  log "Then power off and create the AMI:  sudo poweroff"
+}
+
+# --------------------------------------------------------------------------- #
+# AMI hygiene - run ONCE as the last step before poweroff/snapshot. NOT part of
+# main(): it strips login SSH keys that would otherwise be baked into the AMI
+# and leak to every clone.
+# --------------------------------------------------------------------------- #
+prep_ami() {
+  local vpk=/root/.ssh/k0rdent-bm-virtpower.pub
+  log "prep-ami: sanitizing SSH keys + resetting cloud-init state"
+
+  # root: keep ONLY the virt-power key - sushy-tools needs it on every clone
+  # (qemu+ssh://root@127.0.0.1). Drop any human/login keys that leaked in.
+  if [[ -f ${vpk} ]]; then
+    install -m 0600 -o root -g root "${vpk}" /root/.ssh/authorized_keys
+    log "root authorized_keys reduced to the virt-power key only"
+  else
+    warn "virt-power pubkey ${vpk} missing - leaving root authorized_keys as-is"
+  fi
+
+  # human users: cloud-init re-injects the new instance's launch key on first boot.
+  rm -f /home/*/.ssh/authorized_keys
+  log "removed login authorized_keys under /home/*"
+
+  # reset per-instance state: the clone re-runs cloud-init -> new launch key
+  # injected + SSH host keys regenerated (ssh_deletekeys defaults true) + logs cleared.
+  cloud-init clean --logs 2>/dev/null || warn "cloud-init clean failed/absent"
+
+  log "prep-ami done. Now: sudo poweroff  -> create the AMI"
 }
 
 main() {
