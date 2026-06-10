@@ -53,7 +53,7 @@ install_packages() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y --no-install-recommends \
-    qemu-kvm libvirt-daemon-system libvirt-clients virtinst \
+    qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst \
     ovmf bridge-utils \
     apache2-utils openssl \
     curl ca-certificates jq gettext-base python3-yaml
