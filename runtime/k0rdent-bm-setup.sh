@@ -37,22 +37,23 @@ wait_for() {
 }
 
 # --------------------------------------------------------------------------- #
-# 1. API + CRDs
+# 1. Wait for the k0s API + the Management object (created by the kcm install).
 # --------------------------------------------------------------------------- #
 wait_for "k0s API readyz" 60 5 ${KUBECTL} get --raw=/readyz
 wait_for "Management CRD" 60 5 \
   ${KUBECTL} get crd managements.k0rdent.mirantis.com
-wait_for "BareMetalHost CRD" 60 5 \
-  ${KUBECTL} get crd baremetalhosts.metal3.io
 
-# --------------------------------------------------------------------------- #
-# 2. Patch the Management object (Ironic networking on the provisioning net).
-#    The Management object created by the kcm install is named "kcm".
-# --------------------------------------------------------------------------- #
 MGMT_NAME="kcm"
 wait_for "Management/${MGMT_NAME}" 60 5 \
   ${KUBECTL} get management.k0rdent.mirantis.com "${MGMT_NAME}"
 
+# --------------------------------------------------------------------------- #
+# 2. Patch the Management object (enable Ironic + pin networking to `lab`).
+#    This is what makes k0rdent install the CAPM3/Ironic/BMO provider, which in
+#    turn registers the BareMetalHost CRD. So the patch MUST come BEFORE we wait
+#    for that CRD (step 3) - otherwise we'd deadlock waiting for a CRD that only
+#    appears as a result of this patch.
+# --------------------------------------------------------------------------- #
 log "rendering + applying Management patch"
 rendered_patch="$(mktemp)"
 envsubst <"${MANIFESTS}/management-patch.yaml" >"${rendered_patch}"
@@ -61,8 +62,13 @@ ${KUBECTL} patch management.k0rdent.mirantis.com "${MGMT_NAME}" \
 rm -f "${rendered_patch}"
 
 # --------------------------------------------------------------------------- #
-# 3. Apply BMC Secrets + BareMetalHost CRs (one rendered doc per host).
+# 3. Wait for the provider to register the BareMetalHost CRD (provider install
+#    pulls charts/images, so allow up to 10m), then apply the BMC Secrets +
+#    BareMetalHost CRs (one rendered doc per host).
 # --------------------------------------------------------------------------- #
+wait_for "BareMetalHost CRD" 120 5 \
+  ${KUBECTL} get crd baremetalhosts.metal3.io
+
 apply_bmh() {
   local name="$1" uuid="$2" mac="$3"
   log "applying BareMetalHost ${name}"

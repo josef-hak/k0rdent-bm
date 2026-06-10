@@ -37,7 +37,17 @@
       "Bash(bash -c 'source ./install.sh && declare -F install_runtime install_k0s install_bm >/dev/null && echo \"functions ok; install_phase_b gone:\" $\\(declare -F install_phase_b >/dev/null && echo NO || echo yes\\)')",
       "Bash(make -n units)",
       "Bash(sed -n '1,20p')",
-      "Bash(sed -n '44,47p' Makefile)"
+      "Bash(sed -n '44,47p' Makefile)",
+      "Bash(bash -n runtime/k0rdent-bm-setup.sh)",
+      "Bash(sudo ls -la /etc/k0rdent-bm/sushy-tools/)",
+      "Bash(systemctl cat *)",
+      "Bash(sudo ls -l /root/.ssh/k0rdent-bm-virtpower)",
+      "Bash(sudo journalctl -u sushy-tools.service)",
+      "Bash(sudo systemd-run --quiet --wait --pipe --property=EnvironmentFile=/etc/k0rdent-bm/config.env /bin/sh -c 'echo \"SUSHY_CONF_DIR=[$SUSHY_CONF_DIR]\"; echo \"SUSHY_IMAGE=[$SUSHY_IMAGE]\"; echo \"SUSHY_PORT=[$SUSHY_PORT]\"')",
+      "Bash(echo \"=== kde je setup skript \\(poslední řádky\\) ===\")",
+      "Bash(sudo journalctl -u k0rdent-bm-setup.service -n 25 --no-pager)",
+      "Bash(echo)",
+      "Bash(echo \"=== applnul se patch? Management providers ===\")"
     ]
   }
 }
