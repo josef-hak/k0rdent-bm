@@ -33,9 +33,11 @@ redfish-virtualmedia+https://172.22.0.1:8000/redfish/v1/Systems/<VM-UUID>
 | File | When | Purpose |
 |------|------|---------|
 | `config.env` | both | **Single source of truth** — network, VM UUIDs/MACs, chart coords. Installed to `/etc/k0rdent-bm/config.env`. |
-| `install.sh` | install (once) | Builds everything into the AMI. Idempotent; re-runnable. |
+| `install.sh` | install (once) | Builds everything into the AMI. Idempotent; re-runnable. Run whole, or step by step via `make` (`make help`). |
+| `helm/kcm.yaml` | install | k0rdent Enterprise (kcm) values — enables the UI with basic auth. |
+| `helm/traefik.yaml` | install | Traefik ingress values — DaemonSet on host ports 80/443. |
 | `runtime/sushy-tools.service` | runtime (boot) | Redfish BMC emulator container, `Restart=always`. |
-| `runtime/lab-nat.service` | runtime (boot) | NAT/forwarding for the `lab` network (after docker). |
+| `runtime/lab-nat.service` | runtime (boot) | Brings the `lab` bridge up (dummy `lab-up` carrier) + NAT/forwarding for it (after docker). |
 | `runtime/k0rdent-bm-setup.service` | runtime (boot) | One-shot, ordered `After=k0scontroller`. |
 | `runtime/k0rdent-bm-setup.sh` | runtime (boot) | Waits for API/CRDs, patches the Management object, applies the BareMetalHosts. |
 | `manifests/bm-templates.yaml` | install | HelmRepository + Provider/Cluster templates. |
@@ -51,7 +53,7 @@ On a **KVM-capable** EC2 instance (`/dev/kvm` present), as root. All charts pull
 anonymously from `registry.mirantis.com` — no credentials required:
 
 ```bash
-sudo ./install.sh
+sudo ./install.sh                 # whole build; or step by step: make help
 ```
 
 `install.sh` will:
@@ -60,7 +62,9 @@ sudo ./install.sh
 2. Configure the `lab` bridge (netplan) + libvirt bridge-mode network (no DHCP).
 3. Set up the virt-power SSH key and sushy-tools config (conf.py, htpasswd, self-signed cert).
 4. Define two UEFI VMs `bmh-0`/`bmh-1` with **fixed** UUID + MAC, autostart off.
-5. Bring up k0s, install k0rdent + the bare-metal templates, pre-pull chart/IPA/target artifacts.
+5. Bring up k0s (export kubeconfig to `~/.kube/config`), install Traefik ingress, k0rdent
+   Enterprise (kcm), and the bare-metal provider templates. (The IPA ramdisk + target OS image
+   are fetched at runtime by the Ironic chart — not pre-pulled here.)
 6. Install + enable the runtime systemd units.
 
 Then verify and snapshot:
@@ -77,7 +81,8 @@ systemd-ordered, idempotent:
 
 1. netplan asserts `172.22.0.1`; `libvirtd` up → `lab` net autostarts.
 2. `sushy-tools.service` starts the Redfish emulator.
-3. `lab-nat.service` applies NAT/forwarding for the `lab` subnet (after docker).
+3. `lab-nat.service` brings the `lab` bridge up via an always-up dummy slave (`lab-up`) — so
+   keepalived can assign the VIP even before any VM boots — and applies NAT/forwarding (after docker).
 4. `k0scontroller.service` brings the cluster back.
 5. `k0rdent-bm-setup.service` waits for the API, applies the Management patch + BMC Secrets +
    BareMetalHost CRs.
@@ -92,16 +97,16 @@ journalctl -u k0rdent-bm-setup.service -f        # setup progress
 
 ## Known caveats / to-confirm
 
-- **RAM (PLAN open-risk #2):** `VM_RAM_MB=6144` × 2 + ~4 GB cluster ≈ 16 GB. On a ~15 GiB
-  host this is over budget — `install.sh` warns but does not block. Lower `VM_RAM_MB` to `4096`
-  in `config.env` if the cluster or VMs OOM.
-- **Schema guesses (PLAN risks #1, #3)** — verify against the actually-installed charts/CRDs
-  before relying on the image:
-  - kcm chart name and Management object name (both assumed `kcm`).
-  - `spec.providers[].config.ironic.*` sub-keys in `management-patch.yaml`.
-  - `bm-templates.yaml` apiVersions (`source.toolkit.fluxcd.io/v1`, `k0rdent.mirantis.com/v1beta1`).
-  - `get.mirantis.com` IPA / target image URLs.
-- **BMC path is redfish-virtualmedia** (primary); iPXE network boot is the documented fallback
-  if the ironic chart can't cleanly disable iPXE.
+- **RAM:** `VM_RAM_MB` defaults to `4096` (2×4 GB + ~4 GB cluster ≈ 12 GB, fits a ~15 GiB host).
+  `install.sh` warns if host RAM looks short but does not block; lower it if the cluster or VMs OOM.
+- **Images are not configured/pre-pulled here:** the `ironic` subchart ships correct
+  `images_ipa`/`images_target` URLs (`get.mirantis.com/k0rdent-enterprise/bare-metal/…`) and serves
+  them from its in-cluster httpd. `management-patch.yaml` only overrides Ironic **networking**
+  (`interface`/`ipAddress`/`dhcp`), verified against `charts/ironic` 0.5.0 values.
+- **`lab` bridge needs a carrier:** with no VMs running the bridge is DOWN, so keepalived won't
+  assign the VIP and Ironic hangs waiting for it. `lab-nat.service` fixes this with the `lab-up`
+  dummy slave (see boot step 3).
+- **BMC path is `redfish-virtualmedia`** (primary); plain `redfish` (iPXE network boot) is the
+  documented fallback.
 - Credentials `admin`/`password` and the self-signed sushy-tools cert are **demo-grade only**
   (`disableCertificateVerification: true`). Do not reuse outside a throwaway demo.
