@@ -19,7 +19,15 @@
       "Bash(bash -c 'set -a; source config.env; set +a; echo \"PROV_BRIDGE=$PROV_BRIDGE\"; echo \"netplan=/etc/netplan/99-${PROV_BRIDGE}.yaml\"; echo \"Ironic interface \\(from patch\\)=$PROV_BRIDGE\"')",
       "Bash(sudo virsh net-list --all)",
       "Bash(ip -br link)",
-      "Bash(make status *)"
+      "Bash(make status *)",
+      "Bash(export KUBECONFIG=$HOME/.kube/config)",
+      "Bash(kubectl get *)",
+      "Read(//home/ubuntu/metal3-dev-env/**)",
+      "Bash(rm -rf /tmp/capm3test)",
+      "Bash(install -d /tmp/capm3test)",
+      "Bash(helm pull *)",
+      "Bash(tar xzf *)",
+      "Read(//tmp/capm3test/**)"
     ]
   }
 }

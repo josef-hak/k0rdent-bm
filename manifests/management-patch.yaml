@@ -1,14 +1,15 @@
 # management-patch.yaml - strategic merge patch for the kcm Management object.
 #
-# Enables the in-cluster Ironic stack and pins it to the static provisioning
-# network. Applied by bootstrap.sh via:
+# Enables the in-cluster Ironic stack (cluster-api-provider-metal3 -> ironic
+# subchart) and pins its networking to the static `lab` provisioning network.
+# Applied by bootstrap.sh via:
 #   kubectl patch management kcm --type merge --patch-file <rendered>
+# Filled by envsubst from /etc/k0rdent-bm/config.env.
 #
-# Variables are filled by envsubst from /etc/k0rdent-bm/config.env.
-#
-# NOTE: confirm this config block against the installed
-# cluster-api-provider-metal3 ${CAPM3_VERSION} chart values - the ironic
-# sub-keys (networking/images) must match that chart's schema. (PLAN risk #1)
+# Only networking is overridden. IPA ramdisk + target OS images are NOT set
+# here: the ironic 0.5.0 subchart already ships correct images_ipa/images_target
+# (get.mirantis.com/k0rdent-enterprise/bare-metal/...) and serves them from its
+# in-cluster httpd. Keys verified against charts/ironic/values.yaml.
 spec:
   providers:
     - name: cluster-api-provider-metal3
@@ -18,10 +19,8 @@ spec:
           ironic:
             enabled: true
         ironic:
-          # Bind Ironic (hostNetwork) + keepalived VIP to the provisioning iface.
-          interface: ${PROV_BRIDGE}
-          ipAddress: ${IRONIC_VIP}
           networking:
+            # Ironic runs hostNetwork; bind it + the keepalived VIP to the lab iface.
             interface: ${PROV_BRIDGE}
             ipAddress: ${IRONIC_VIP}
             dhcp:
@@ -29,11 +28,6 @@ spec:
               rangeEnd: ${DHCP_RANGE_END}
               netmask: ${PROV_NETMASK}
               options:
-                - "router,${HOST_IP}"
-          # IPA ramdisk + target OS image served by the in-cluster httpd.
-          images:
-            ipa: "https://get.mirantis.com/images/ironic-python-agent"
-            target: "https://get.mirantis.com/images/jammy-server-cloudimg-amd64.qcow2"
-          # Virtual-media path (PRIMARY); iPXE network boot is the fallback.
-          deployKernelUrl: ""
-          deployRamdiskUrl: ""
+                - "option:router,${HOST_IP}"
+                - "option:dns-server,${IRONIC_VIP}"
+                - "option:ntp-server,${IRONIC_VIP}"

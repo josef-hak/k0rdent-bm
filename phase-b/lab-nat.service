@@ -1,0 +1,18 @@
+# Phase B: NAT + IPv4 forwarding for the isolated `lab` provisioning network.
+# Must run AFTER docker (docker sets the FORWARD policy to DROP on start) and
+# after libvirtd brings the bridge up. Idempotent, so re-running each boot is
+# harmless.
+[Unit]
+Description=k0rdent bare-metal demo - NAT/forwarding for the lab network
+After=docker.service libvirtd.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/k0rdent-bm/config.env
+ExecStart=/opt/k0rdent-bm/lab-nat.sh
+
+[Install]
+WantedBy=multi-user.target

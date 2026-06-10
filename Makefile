@@ -71,7 +71,7 @@ units:     ;	$(call RUN,install_phase_b)
 # up, sushy-tools starts, then bootstrap.service patches Management + applies
 # the BareMetalHosts.
 start:
-	sudo systemctl start k0scontroller sushy-tools.service
+	sudo systemctl start k0scontroller sushy-tools.service lab-nat.service
 	sudo systemctl start bootstrap.service
 
 # ---- verify / inspect ------------------------------------------------------
@@ -82,7 +82,7 @@ status:
 	@echo "=== bridge ==="       ; ip -br addr show "$$(. $(CURDIR)/config.env; echo $$PROV_BRIDGE)" 2>&1 || true
 	@echo "=== libvirt net ==="  ; sudo virsh net-list --all 2>&1 || true
 	@echo "=== VMs ==="          ; sudo virsh list --all 2>&1 || true
-	@echo "=== services ===" ; for s in k0scontroller sushy-tools.service bootstrap.service; do \
+	@echo "=== services ===" ; for s in k0scontroller sushy-tools.service lab-nat.service bootstrap.service; do \
 	  printf '  %-22s enabled=%-10s active=%s\n' "$$s" \
 	    "$$(systemctl is-enabled $$s 2>/dev/null)" \
 	    "$$(systemctl is-active  $$s 2>/dev/null)"; \

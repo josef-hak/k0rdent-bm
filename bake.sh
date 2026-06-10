@@ -382,18 +382,14 @@ install_bm() {
   log "creating bare-metal HelmRepository + Provider/Cluster templates"
   envsubst <"${REPO_DIR}/manifests/bm-templates.yaml" | k0s kubectl apply -f -
 
-  log "pre-pulling chart + IPA + target-image artifacts"
-  helm pull "${BM_OCI_REPO}/cluster-api-provider-metal3" --version "${CAPM3_VERSION}" \
-    -d /var/lib/k0rdent-bm/charts 2>/dev/null || warn "capm3 chart pre-pull skipped"
-  # IPA ramdisk + target OS image cached locally so Phase B has no internet dep.
-  install -d -m 0755 /var/lib/k0rdent-bm/images
-  ( cd /var/lib/k0rdent-bm/images
-    curl -fsSLO https://get.mirantis.com/images/ironic-python-agent.kernel || warn "IPA kernel pull skipped"
-    curl -fsSLO https://get.mirantis.com/images/ironic-python-agent.initramfs || warn "IPA initramfs pull skipped"
-  )
+  # No artifact pre-pull: the ironic 0.5.0 subchart fetches the IPA ramdisk
+  # (images_ipa) and target OS image (images_target) itself at runtime and
+  # serves them from its in-cluster httpd. The provider Helm chart is pulled by
+  # the CAPM3 install. (The old get.mirantis.com/images/* URLs were wrong - the
+  # chart's real image URLs live under get.mirantis.com/k0rdent-enterprise/...)
 
-  log "stopping k0scontroller (Phase B restarts it on boot)"
-  systemctl stop k0scontroller
+  # log "stopping k0scontroller (Phase B restarts it on boot)"
+  # systemctl stop k0scontroller
 }
 
 # --------------------------------------------------------------------------- #
@@ -403,14 +399,20 @@ install_phase_b() {
   log "installing Phase-B units, bootstrap.sh and manifests"
   install -d -m 0755 /opt/k0rdent-bm/manifests
   install -m 0755 "${REPO_DIR}/phase-b/bootstrap.sh" /opt/k0rdent-bm/bootstrap.sh
+  install -m 0755 "${REPO_DIR}/phase-b/lab-nat.sh"   /opt/k0rdent-bm/lab-nat.sh
   install -m 0644 "${REPO_DIR}/manifests/management-patch.yaml" /opt/k0rdent-bm/manifests/
   install -m 0644 "${REPO_DIR}/manifests/bmh.yaml"             /opt/k0rdent-bm/manifests/
 
   install -m 0644 "${REPO_DIR}/phase-b/sushy-tools.service" /etc/systemd/system/
   install -m 0644 "${REPO_DIR}/phase-b/bootstrap.service"   /etc/systemd/system/
+  install -m 0644 "${REPO_DIR}/phase-b/lab-nat.service"     /etc/systemd/system/
+
+  # Persist IPv4 forwarding (lab-nat.sh also sets it live each boot).
+  echo 'net.ipv4.ip_forward=1' >/etc/sysctl.d/99-k0rdent-bm.conf
 
   systemctl daemon-reload
-  systemctl enable libvirtd docker k0scontroller sushy-tools.service bootstrap.service
+  systemctl enable libvirtd docker k0scontroller \
+    sushy-tools.service lab-nat.service bootstrap.service
   log "Phase-B units enabled"
 }
 
