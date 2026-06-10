@@ -323,7 +323,24 @@ EOF
   rm -f /tmp/${name}.xml
 }
 
+# sushy-tools stores inserted virtual-media ISOs in a libvirt storage pool
+# named 'default'. Ubuntu's libvirt doesn't create it automatically, so
+# VirtualMedia.InsertMedia fails with "Storage pool not found ... 'default'".
+# Define a dir-pool at the images dir, autostart so it survives reboot.
+ensure_libvirt_pool() {
+  if virsh pool-info default &>/dev/null; then
+    log "libvirt 'default' storage pool already exists"
+  else
+    log "creating libvirt 'default' storage pool (for sushy virtual media)"
+    virsh pool-define-as default dir --target /var/lib/libvirt/images
+    virsh pool-build default 2>/dev/null || true
+  fi
+  virsh pool-autostart default 2>/dev/null || true
+  virsh pool-start default 2>/dev/null || true
+}
+
 define_vms() {
+  ensure_libvirt_pool
   log "defining fake bare-metal VMs"
   define_vm "${BMH0_NAME}" "${BMH0_UUID}" "${BMH0_MAC}"
   define_vm "${BMH1_NAME}" "${BMH1_UUID}" "${BMH1_MAC}"
