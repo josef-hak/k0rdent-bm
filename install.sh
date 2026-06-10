@@ -42,6 +42,18 @@ preflight() {
     warn "host RAM ${total_mb}MiB < est. need ${need_mb}MiB (2x VM ${VM_RAM_MB} + ~4G cluster)."
     warn "Cluster or VMs may OOM. Lower VM_RAM_MB in config.env. (PLAN open-risk #2)"
   fi
+
+  # fd / inotify limits for k0rdent. tune_host sets these; here we just report
+  # and warn if still below threshold (non-fatal - run 'make tune' to fix).
+  local nofile watches instances
+  nofile=$(ulimit -n)
+  watches=$(sysctl -n fs.inotify.max_user_watches 2>/dev/null || echo 0)
+  instances=$(sysctl -n fs.inotify.max_user_instances 2>/dev/null || echo 0)
+  (( nofile    >= 65535  )) || warn "ulimit -n ${nofile} < 65535 (run 'make tune')"
+  (( watches   >= 524288 )) || warn "fs.inotify.max_user_watches ${watches} < 524288 (run 'make tune')"
+  (( instances >= 512    )) || warn "fs.inotify.max_user_instances ${instances} < 512 (run 'make tune')"
+  log "fd/inotify: nofile=${nofile} watches=${watches} instances=${instances}"
+
   log "preflight ok (RAM ${total_mb}MiB, kvm present)"
 }
 
@@ -96,6 +108,40 @@ install_config() {
   log "installing config to ${CONFIG_DST}"
   install -d -m 0755 /etc/k0rdent-bm
   install -m 0644 "${CONFIG_SRC}" "${CONFIG_DST}"
+}
+
+# --------------------------------------------------------------------------- #
+# 2b. Host tuning for k0rdent: inotify limits + open file descriptors.
+#     k0rdent/k0s controllers watch a lot of files; stock limits are too low.
+#     sysctl.d + limits.d persist across reboot; the k0scontroller drop-in makes
+#     the nofile bump actually apply (systemd ignores limits.conf for services).
+#     Idempotent: re-running just rewrites the same drop-in files.
+# --------------------------------------------------------------------------- #
+tune_host() {
+  log "tuning host: inotify watches/instances + nofile limits"
+
+  # inotify (applied live + persisted; auto-reapplied each boot from sysctl.d).
+  cat >/etc/sysctl.d/99-k0rdent-inotify.conf <<EOF
+fs.inotify.max_user_watches=524288
+fs.inotify.max_user_instances=512
+EOF
+  sysctl -p /etc/sysctl.d/99-k0rdent-inotify.conf >/dev/null
+
+  # open files for interactive/login sessions (PAM).
+  cat >/etc/security/limits.d/99-k0rdent-nofile.conf <<EOF
+* soft nofile 65535
+* hard nofile 65535
+root soft nofile 65535
+root hard nofile 65535
+EOF
+
+  # open files for the k0s controller (systemd services ignore limits.conf).
+  install -d -m 0755 /etc/systemd/system/k0scontroller.service.d
+  cat >/etc/systemd/system/k0scontroller.service.d/10-nofile.conf <<EOF
+[Service]
+LimitNOFILE=65535
+EOF
+  systemctl daemon-reload 2>/dev/null || true
 }
 
 # --------------------------------------------------------------------------- #
@@ -433,6 +479,7 @@ main() {
   preflight
   install_packages
   install_config
+  tune_host
   setup_provisioning_net
   setup_virtpower_key
   setup_sushy

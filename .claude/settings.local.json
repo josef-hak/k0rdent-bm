@@ -62,7 +62,10 @@
       "Bash(rm -f /tmp/mp.yaml)",
       "Bash(virt-install --help)",
       "Bash(virt-install --version)",
-      "Bash(command -v qemu-img)"
+      "Bash(command -v qemu-img)",
+      "Bash(bash -c 'source ./install.sh && declare -F tune_host >/dev/null && echo \"tune_host defined\"')",
+      "Bash(make -n tune)",
+      "Bash(make check *)"
     ]
   }
 }

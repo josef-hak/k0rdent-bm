@@ -23,7 +23,7 @@ INSTALL  := $(CURDIR)/install.sh
 RUN    = sudo bash -c 'source $(INSTALL) && $(1)'
 
 .PHONY: help all \
-        check packages config net virtpower sushy vms k0s ingress kcm bm units \
+        check packages config tune net virtpower sushy vms k0s ingress kcm bm units \
         start status watch-bmh clean
 
 # ----------------------------------------------------------------------------
@@ -32,15 +32,16 @@ help:
 	@echo "  1. make check       - check root / KVM / RAM"
 	@echo "  2. make packages    - apt + docker + helm + kubectl + k0s"
 	@echo "  3. make config      - install config.env to /etc/k0rdent-bm"
-	@echo "  4. make net         - provisioning bridge + libvirt network"
-	@echo "  5. make virtpower   - virt-power SSH key"
-	@echo "  6. make sushy       - sushy-tools config + image pull"
-	@echo "  7. make vms         - define bmh-0 / bmh-1"
-	@echo "  8. make k0s         - k0s single-node controller"
-	@echo "  9. make ingress     - Traefik ingress (expose k0rdent UI on 80/443)"
-	@echo " 10. make kcm         - k0rdent Enterprise management cluster"
-	@echo " 11. make bm          - BM provider templates + artifact pre-pull"
-	@echo " 12. make units       - install + enable runtime systemd units"
+	@echo "  4. make tune        - host fd/inotify limits for k0rdent"
+	@echo "  5. make net         - provisioning bridge + libvirt network"
+	@echo "  6. make virtpower   - virt-power SSH key"
+	@echo "  7. make sushy       - sushy-tools config + image pull"
+	@echo "  8. make vms         - define bmh-0 / bmh-1"
+	@echo "  9. make k0s         - k0s single-node controller"
+	@echo " 10. make ingress     - Traefik ingress (expose k0rdent UI on 80/443)"
+	@echo " 11. make kcm         - k0rdent Enterprise management cluster"
+	@echo " 12. make bm          - BM provider templates + artifact pre-pull"
+	@echo " 13. make units       - install + enable runtime systemd units"
 	@echo "     make all         - all of the above (= sudo ./install.sh)"
 	@echo ""
 	@echo "Operate / verify:"
@@ -56,6 +57,7 @@ all:
 check:     ;	$(call RUN,preflight)
 packages:  ;	$(call RUN,install_packages)
 config:    ;	$(call RUN,install_config)
+tune:      ;	$(call RUN,tune_host)
 net:       ;	$(call RUN,setup_provisioning_net)
 virtpower: ;	$(call RUN,setup_virtpower_key)
 sushy:     ;	$(call RUN,setup_sushy)
