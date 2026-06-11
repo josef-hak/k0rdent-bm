@@ -44,3 +44,30 @@ fwd_ensure -i "${PROV_BRIDGE}" -j ACCEPT
 fwd_ensure -o "${PROV_BRIDGE}" -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 log "NAT/forwarding for ${PROV_SUBNET} via ${PROV_BRIDGE} ensured"
+
+# --------------------------------------------------------------------------- #
+# Expose child-cluster services on the EC2's public interface (host DNAT).
+# EXPOSE_PORTS = space-separated <extPort>:<childIP>:<dstPort> triples. For each
+# we DNAT incoming extPort -> childIP:dstPort, allow the forward into the lab
+# bridge, and masquerade so the child node replies via the host. Idempotent.
+# Open the extPorts in the AWS Security Group too. (No '-i <iface>' so it works
+# regardless of the cloud NIC name; extPorts must not clash with host services.)
+# --------------------------------------------------------------------------- #
+expose_ensure() {  # <extPort> <childIP> <dstPort>
+  local ext="$1" ip="$2" dst="$3"
+  iptables -t nat -C PREROUTING -p tcp --dport "${ext}" -j DNAT --to-destination "${ip}:${dst}" 2>/dev/null \
+    || iptables -t nat -A PREROUTING -p tcp --dport "${ext}" -j DNAT --to-destination "${ip}:${dst}"
+  iptables -C FORWARD -o "${PROV_BRIDGE}" -p tcp -d "${ip}" --dport "${dst}" -j ACCEPT 2>/dev/null \
+    || iptables -I FORWARD 1 -o "${PROV_BRIDGE}" -p tcp -d "${ip}" --dport "${dst}" -j ACCEPT
+  iptables -t nat -C POSTROUTING -o "${PROV_BRIDGE}" -p tcp -d "${ip}" --dport "${dst}" -j MASQUERADE 2>/dev/null \
+    || iptables -t nat -A POSTROUTING -o "${PROV_BRIDGE}" -p tcp -d "${ip}" --dport "${dst}" -j MASQUERADE
+}
+
+for triple in ${EXPOSE_PORTS:-}; do
+  IFS=: read -r e_ext e_ip e_dst <<<"${triple}"
+  if [[ -z "${e_ext}" || -z "${e_ip}" || -z "${e_dst}" ]]; then
+    log "skipping malformed EXPOSE_PORTS entry '${triple}'"; continue
+  fi
+  expose_ensure "${e_ext}" "${e_ip}" "${e_dst}"
+  log "exposed :${e_ext} -> ${e_ip}:${e_dst}"
+done
