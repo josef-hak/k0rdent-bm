@@ -103,4 +103,12 @@ ${KUBECTL} get ns "${BMH_NAMESPACE}" &>/dev/null \
 apply_bmh "${BMH0_NAME}" "${BMH0_UUID}" "${BMH0_MAC}"
 apply_bmh "${BMH1_NAME}" "${BMH1_UUID}" "${BMH1_MAC}"
 
+# --------------------------------------------------------------------------- #
+# 4. BM Credential (Secret + Credential + resource-template ConfigMap) so a
+#    ClusterDeployment can reference 'bm-credential'. Static (no envsubst);
+#    retry for the Credential admission webhook on boot.
+# --------------------------------------------------------------------------- #
+log "applying BM credential (bm-credential)"
+retry "apply credential" 30 5 ${KUBECTL} apply -f "${MANIFESTS}/cred.yaml"
+
 log "setup complete - BMHs should move Registering -> Inspecting -> Available"

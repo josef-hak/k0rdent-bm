@@ -86,7 +86,8 @@
       "Bash(bash -c 'source ./install.sh && declare -F prep_ami >/dev/null && echo \"prep_ami defined\"')",
       "Bash(make -n prep-ami)",
       "Bash(python3 -c 'import yaml,sys; d=yaml.safe_load\\(open\\(\"manifests/bm-cld-standalone.yaml\"\\)\\); print\\(\"YAML OK; kind=\",d[\"kind\"],\"template=\",d[\"spec\"][\"template\"]\\); print\\(\"controlPlaneNumber=\",d[\"spec\"][\"config\"][\"controlPlaneNumber\"],\"workersNumber=\",d[\"spec\"][\"config\"][\"workersNumber\"]\\)')",
-      "Bash(sudo KUBECONFIG=/var/lib/k0s/pki/admin.conf k0s kubectl apply --dry-run=server -f manifests/bm-cld-standalone.yaml)"
+      "Bash(sudo KUBECONFIG=/var/lib/k0s/pki/admin.conf k0s kubectl apply --dry-run=server -f manifests/bm-cld-standalone.yaml)",
+      "Bash(python3 -c 'import yaml; objs=list\\(yaml.safe_load_all\\(open\\(\"manifests/cred.yaml\"\\)\\)\\); [print\\(o[\"kind\"],\"/\",o[\"metadata\"][\"name\"]\\) for o in objs if o]')"
     ]
   }
 }

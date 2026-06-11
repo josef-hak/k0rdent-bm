@@ -493,6 +493,7 @@ install_runtime() {
   install -m 0755 "${REPO_DIR}/runtime/lab-nat.sh"   /opt/k0rdent-bm/lab-nat.sh
   install -m 0644 "${REPO_DIR}/manifests/management-patch.yaml" /opt/k0rdent-bm/manifests/
   install -m 0644 "${REPO_DIR}/manifests/bmh.yaml"             /opt/k0rdent-bm/manifests/
+  install -m 0644 "${REPO_DIR}/manifests/cred.yaml"            /opt/k0rdent-bm/manifests/
 
   install -m 0644 "${REPO_DIR}/runtime/sushy-tools.service" /etc/systemd/system/
   install -m 0644 "${REPO_DIR}/runtime/k0rdent-bm-setup.service" /etc/systemd/system/
