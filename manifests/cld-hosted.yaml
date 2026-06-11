@@ -1,0 +1,107 @@
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ClusterDeployment
+metadata:
+  name: bm-hosted
+  namespace: kcm-system
+  labels:
+    group: demo
+spec:
+  template: capm3-hosted-cp-0-5-0
+  credential: bm-credential
+  dryRun: false
+  config:
+    clusterAnnotations: {}
+    clusterLabels: {}
+    clusterNetwork:
+      pods:
+        cidrBlocks:
+          - 10.243.0.0/16
+      services:
+        cidrBlocks:
+          - 10.95.0.0/16
+    controlPlaneNumber: 1
+    dataTemplate:
+      metaData:
+        ipAddressesFromIPPool:
+          - key: provisioningIP
+            name: pool-pxe
+        objectNames:
+          - key: name
+            object: machine
+          - key: local-hostname
+            object: machine
+          - key: local_hostname
+            object: machine
+        prefixesFromIPPool:
+          - key: provisioningCIDR
+            name: pool-pxe
+      networkData:
+        links:
+          ethernets:
+            - id: enp1s0  # e.g., ens3
+              type: phy
+              macAddress:
+                fromHostInterface: enp1s0
+        networks:
+          ipv4:
+            - id: pxe
+              ipAddressFromIPPool: pool-pxe
+              link: enp1s0
+              routes:
+              - gateway:
+                  fromIPPool: pool-pxe
+                network: 0.0.0.0
+                prefix: 0
+        services:
+          dns:
+            - 8.8.8.8   # e.g., 8.8.8.8
+    ipPools:
+      - name: pool-pxe
+        pools:
+          # In the lab subnet (172.22.0.0/24), ABOVE Ironic's DHCP pool
+          # (.10-.100) so the static node IPs don't clash with DHCP leases.
+          - end: 172.22.0.110
+            gateway: 172.22.0.1
+            prefix: 24
+            start: 172.22.0.101
+    k0s:
+      api:
+        externalAddress: 172.22.0.101  # CP node's IP (pool-pxe start); keepalived disabled
+      telemetry:
+        enabled: false
+      version: v1.35.1+k0s.1
+
+    k0smotron:
+      service: # Use LoadBalancer to expose Kubernetes API endpoint
+        type: LoadBalancer
+        apiPort: 6443
+        konnectivityPort: 8132
+    # Alternatively, use an ingress controller to expose Kubernetes API endpoint, see k0smotron documentation: https://docs.k0smotron.io/head/ingress-support/
+    #    k0smotron:
+    #      ingress:
+    #        apiHost: kube-api.ingress
+    #        konnectivityHost: konnectivity.ingress
+    #        className: haproxy
+    #        annotations:
+    #          haproxy.org/ssl-passthrough: "true"
+    #          ingress.kubernetes.io/ssl-passthrough: "true"
+    worker:
+      # Available since 0.4.0
+      # Automated node cleaning mode: 'metadata' or 'disabled'
+      automatedCleaningMode: disabled
+      # Available since 0.4.0
+      # Re-use the same BaremetalHosts during deprovisioning and provisioning
+      nodeReuse: false
+      # Default target OS image
+      checksum: f0a5da9499adaaca6249792df25032430f33f0130eddf39433782b5362057b99
+      image: http://172.22.0.2:6180/images/ubuntu-24.04-server-cloudimg-20251118-amd64.img
+      preStartCommands:
+        - sudo useradd -G sudo -s /bin/bash -d /home/admin -p $(openssl passwd -1 passwd) admin # define your user here. it can be used e.g. for debugging.
+        #- sudo apt update # for Ubuntu
+        #- sudo dnf makecache # for RedHat
+        # apt/dnf commands is used here just for illustration purposes
+      files:
+        - path: /home/user1/.ssh/authorized_keys
+          permissions: "0644"
+          content: "ssh-ed25519 x ubuntu@jhak-ubuntu-24"
+    workersNumber: 1
