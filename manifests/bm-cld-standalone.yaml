@@ -1,7 +1,7 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ClusterDeployment
 metadata:
-  name: capm3-example
+  name: bm-demo-cluster-standalone
   namespace: kcm-system
   labels:
     group: demo
