@@ -379,8 +379,23 @@ export_kubeconfig() {
   install -m 0600 -o "${user}" -g "${grp}" "${KUBECONFIG_PATH}" "${dst}"
 }
 
+# Pin a stable hostname BEFORE k0s init. k0s uses the OS hostname as the node
+# name; AWS resets it to ip-<private-ip> on every clone/boot, which would change
+# the node name and invalidate the baked kubelet cert (system:node:<old-name>).
+# A fixed hostname keeps the node identity stable across clone; preserve_hostname
+# stops cloud-init from overwriting it.
+set_hostname() {
+  log "pinning stable hostname '${K0S_NODE_NAME}' (k0s node name = hostname)"
+  hostnamectl set-hostname "${K0S_NODE_NAME}"
+  grep -qE "^127\.0\.1\.1[[:space:]]+${K0S_NODE_NAME}\b" /etc/hosts \
+    || echo "127.0.1.1 ${K0S_NODE_NAME}" >>/etc/hosts
+  install -d -m 0755 /etc/cloud/cloud.cfg.d
+  printf 'preserve_hostname: true\n' >/etc/cloud/cloud.cfg.d/99-preserve-hostname.cfg
+}
+
 # 7a. k0s single-node controller. Leaves k0scontroller running for 7b/7c.
 install_k0s() {
+  set_hostname
   log "installing k0s single-node controller"
   if [[ ! -f /etc/k0s/k0s.yaml ]]; then
     install -d -m 0755 /etc/k0s
