@@ -21,8 +21,9 @@ spec:
           - 10.95.0.0/16
     controlPlane:
       # Available since 0.4.0
-      # Automated node cleaning mode: 'metadata' or 'disabled'
-      automatedCleaningMode: metadata
+      # Automated node cleaning mode: 'metadata' or 'disabled'.
+      # 'disabled' skips the disk-wipe step -> faster (re)provisioning for a demo.
+      automatedCleaningMode: disabled
       # Available since 0.4.0
       # Re-use the same BaremetalHosts during deprovisioning and provisioning
       nodeReuse: false
@@ -95,8 +96,9 @@ spec:
       version: v1.35.1+k0s.1
     worker:
       # Available since 0.4.0
-      # Automated node cleaning mode: 'metadata' or 'disabled'
-      automatedCleaningMode: metadata
+      # Automated node cleaning mode: 'metadata' or 'disabled'.
+      # 'disabled' skips the disk-wipe step -> faster (re)provisioning for a demo.
+      automatedCleaningMode: disabled
       # Available since 0.4.0
       # Re-use the same BaremetalHosts during deprovisioning and provisioning
       nodeReuse: false
@@ -112,4 +114,4 @@ spec:
         - path: /home/admin/.ssh/authorized_keys
           permissions: "0644"
           content: "ssh-ed25519 xxx ubuntu@jhak-ubuntu-24"
-    workersNumber: 1
+    workersNumber: 1 # 0: Single-node (CP only) -> uses just 1 BMH
